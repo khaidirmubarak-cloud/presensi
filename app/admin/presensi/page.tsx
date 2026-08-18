@@ -13,6 +13,12 @@ type PresensiRow = {
   jamPulang: string | null;
   telatMenit: number | null;
   pulangCepatMenit: number | null;
+  sumber: "fingerprint" | "wa_ping" | null;
+};
+
+const SUMBER_LABEL: Record<NonNullable<PresensiRow["sumber"]>, string> = {
+  fingerprint: "Fingerprint",
+  wa_ping: "WA",
 };
 
 const STATUS_LABEL: Record<PresensiRow["status"], string> = {
@@ -82,9 +88,9 @@ export default function PresensiPage() {
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Presensi</h1>
         <p className="mt-1.5 text-[14px] text-muted max-w-lg">
-          Status kehadiran harian dihitung otomatis dari share-location WhatsApp (attendance_pings)
-          dibandingkan jam kerja seharusnya. Pegawai shift & data mesin fingerprint belum masuk
-          hitungan otomatis di fase ini.
+          Status kehadiran harian dihitung otomatis dibandingkan jam kerja seharusnya. Sumber
+          utama data adalah scan mesin fingerprint; share-location WhatsApp cuma dipakai kalau
+          hari itu tidak ada data fingerprint. Pegawai shift belum masuk hitungan otomatis.
         </p>
       </header>
 
@@ -133,6 +139,7 @@ export default function PresensiPage() {
                 <th className="text-left px-4 py-2.5 font-semibold">Unit</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Jam Masuk</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Jam Pulang</th>
+                <th className="text-left px-4 py-2.5 font-semibold">Sumber</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Status</th>
               </tr>
             </thead>
@@ -144,6 +151,7 @@ export default function PresensiPage() {
                   <td className="px-4 py-2.5 text-muted">{r.unitName ?? "-"}</td>
                   <td className="px-4 py-2.5 text-muted">{formatWita(r.jamMasuk)}</td>
                   <td className="px-4 py-2.5 text-muted">{formatWita(r.jamPulang)}</td>
+                  <td className="px-4 py-2.5 text-muted">{r.sumber ? SUMBER_LABEL[r.sumber] : "-"}</td>
                   <td className="px-4 py-2.5">
                     <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${STATUS_CLASS[r.status]}`}>
                       {STATUS_LABEL[r.status]}

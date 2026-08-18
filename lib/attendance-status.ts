@@ -12,6 +12,12 @@ export type AttendancePing = {
   within_radius: number; // 0 | 1
 };
 
+// Fase 3b: satu baris scan mesin fingerprint (fingerprint_scans), jam masuk/pulang lebih
+// bisa diandalkan daripada WA-ping (radius GPS, adopsi rendah) -- lihat computeDailyStatus.
+export type FingerprintScan = {
+  scanned_at: string; // ISO UTC
+};
+
 export type DailyAttendance = {
   jamMasuk: string | null; // ISO timestamp ping valid pertama
   jamPulang: string | null; // ISO timestamp ping valid terakhir, null kalau cuma 1 ping valid
@@ -23,6 +29,16 @@ export function deriveDailyAttendance(pings: AttendancePing[]): DailyAttendance 
   return {
     jamMasuk: valid[0]?.created_at ?? null,
     jamPulang: valid.length >= 2 ? valid[valid.length - 1].created_at : null,
+  };
+}
+
+// Semua scan fingerprint dianggap valid (tidak ada konsep radius seperti WA-ping) --
+// scan pertama hari itu = masuk, scan terakhir = pulang (null kalau cuma 1 scan).
+export function deriveDailyAttendanceFromScans(scans: FingerprintScan[]): DailyAttendance {
+  const sorted = [...scans].sort((a, b) => a.scanned_at.localeCompare(b.scanned_at));
+  return {
+    jamMasuk: sorted[0]?.scanned_at ?? null,
+    jamPulang: sorted.length >= 2 ? sorted[sorted.length - 1].scanned_at : null,
   };
 }
 
@@ -43,12 +59,15 @@ export type AttendanceStatus =
   | "terlambat"
   | "pulang_cepat";
 
+export type AttendanceSource = "fingerprint" | "wa_ping" | null;
+
 export type DailyStatusResult = {
   status: AttendanceStatus;
   jamMasuk: string | null;
   jamPulang: string | null;
   telatMenit: number | null;
   pulangCepatMenit: number | null;
+  sumber: AttendanceSource;
 };
 
 function witaTimeOfDay(isoDatetime: string): string {
@@ -77,6 +96,7 @@ export function computeDailyStatus(
   holidayDates: Set<string>,
   ramadhanPeriods: RamadhanRange[],
   rules: WorkHourRule[],
+  fingerprintScans: FingerprintScan[] = [],
 ): DailyStatusResult {
   const asUtcDate = new Date(`${date}T00:00:00Z`);
   const empty: DailyStatusResult = {
@@ -85,6 +105,7 @@ export function computeDailyStatus(
     jamPulang: null,
     telatMenit: null,
     pulangCepatMenit: null,
+    sumber: null,
   };
 
   if (isWeekend(asUtcDate) || isHoliday(asUtcDate, holidayDates)) {
@@ -94,7 +115,11 @@ export function computeDailyStatus(
     return { ...empty, status: "shift" };
   }
 
-  const { jamMasuk, jamPulang } = deriveDailyAttendance(pings);
+  // Fingerprint = sumber utama (keputusan awal arsitektur), WA-ping cuma pelengkap kalau
+  // hari itu tidak ada scan mesin sama sekali.
+  const fromFingerprint = deriveDailyAttendanceFromScans(fingerprintScans);
+  const sumber: AttendanceSource = fromFingerprint.jamMasuk ? "fingerprint" : pings.length > 0 ? "wa_ping" : null;
+  const { jamMasuk, jamPulang } = fromFingerprint.jamMasuk ? fromFingerprint : deriveDailyAttendance(pings);
   if (!jamMasuk) {
     return { ...empty, status: "belum_ada_data" };
   }
@@ -104,7 +129,7 @@ export function computeDailyStatus(
   const rule = rules.find((r) => r.day_type === dayType && r.period_type === periodType);
 
   if (!rule) {
-    return { status: "hadir", jamMasuk, jamPulang, telatMenit: null, pulangCepatMenit: null };
+    return { status: "hadir", jamMasuk, jamPulang, telatMenit: null, pulangCepatMenit: null, sumber };
   }
 
   const masukMenit = toMinutes(witaTimeOfDay(jamMasuk));
@@ -126,5 +151,6 @@ export function computeDailyStatus(
     jamPulang,
     telatMenit,
     pulangCepatMenit,
+    sumber,
   };
 }

@@ -19,6 +19,11 @@ type PingRow = {
   within_radius: number;
 };
 
+type ScanRow = {
+  employee_id: string;
+  scanned_at: string;
+};
+
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -59,6 +64,22 @@ export async function GET(req: NextRequest) {
     else pingsByEmployee.set(p.employee_id, [p]);
   }
 
+  // fingerprint_scans dihubungkan lewat employees.finger_id (bukan employee_id langsung) --
+  // scan dengan finger_id yang tidak cocok pegawai manapun otomatis tidak ikut (misal
+  // finger_id lama yang sudah tidak ter-assign).
+  const scanRows = await query<ScanRow>(
+    `SELECT e.id AS employee_id, fs.scanned_at FROM fingerprint_scans fs
+     JOIN employees e ON e.finger_id = fs.finger_id
+     WHERE fs.scanned_at BETWEEN ? AND ?`,
+    [start, end],
+  );
+  const scansByEmployee = new Map<string, ScanRow[]>();
+  for (const s of scanRows) {
+    const list = scansByEmployee.get(s.employee_id);
+    if (list) list.push(s);
+    else scansByEmployee.set(s.employee_id, [s]);
+  }
+
   const holidayRows = await query<{ holiday_date: string }>(
     "SELECT holiday_date FROM holidays WHERE holiday_date = ?",
     [date],
@@ -78,7 +99,10 @@ export async function GET(req: NextRequest) {
       created_at: dbDatetimeToIso(p.created_at)!,
       within_radius: p.within_radius,
     }));
-    const daily = computeDailyStatus(date, pings, !!e.uses_shift, holidayDates, ramadhanPeriods, rules);
+    const scans = (scansByEmployee.get(e.id) ?? []).map((s) => ({
+      scanned_at: dbDatetimeToIso(s.scanned_at)!,
+    }));
+    const daily = computeDailyStatus(date, pings, !!e.uses_shift, holidayDates, ramadhanPeriods, rules, scans);
     return {
       employeeId: e.id,
       name: e.name,

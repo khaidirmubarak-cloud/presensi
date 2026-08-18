@@ -7,8 +7,10 @@ Fase 1: Data Pegawai & Master Data. Fase 2: Hari Libur & Kalender Kerja. Fase 3:
 Fase 3 dibangun DI ATAS `attendance_pings` yang sudah aktif diisi webhook WA di
 `kinerja`/`dashboard-kinerja` (self-service pegawai) -- app ini menambah tampilan admin
 lintas-pegawai (`/admin/presensi`) dan status otomatis (Hadir/Terlambat/Pulang Cepat)
-berdasar `work_hour_rules` (normal vs Ramadhan). Jembatan ingestion mesin fingerprint dan
-jadwal shift satpam sengaja belum masuk fase ini.
+berdasar `work_hour_rules` (normal vs Ramadhan). Fase 3b menambahkan `fingerprint_scans`
+sebagai **sumber utama** presensi (WA-ping jadi pelengkap kalau hari itu tidak ada scan
+mesin) -- lihat "Kontrak `fingerprint_scans`" di bawah. Jadwal shift satpam sengaja belum
+masuk fase ini.
 
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri
@@ -42,6 +44,7 @@ kalau kolomnya sudah pernah ditambahkan):
 mariadb -u <user> -p <database> < sql/001_employee_profiles.sql
 mariadb -u <user> -p <database> < sql/002_calendar.sql
 mariadb -u <user> -p <database> < sql/003_attendance_rules.sql
+mariadb -u <user> -p <database> < sql/004_fingerprint_scans.sql
 ```
 
 ```bash
@@ -69,6 +72,35 @@ Migrasi kalender (Fase 2 -- `libur`/`ramadhan`/`harikerja`), pakai env yang sama
 npm run migrate:calendar
 ```
 
+Migrasi historis fingerprint (Fase 3b -- `absen`, ~1,2 juta baris, butuh waktu lebih lama
+dari migrasi lain, ada log progres per bulan):
+```bash
+npm run migrate:fingerprint
+```
+
+## Kontrak `fingerprint_scans` (untuk tool sinkron mesin fingerprint)
+
+`absen` di cobakinerja **tidak diisi oleh kode PHP manapun** (dikonfirmasi: cuma ada fitur
+koreksi manual per pegawai) -- mesin fingerprint tersambung ke database lewat tool/software
+terpisah di luar codebase ini. Sejak cobakinerja tidak dipakai lagi, tool itu diarahkan
+untuk menulis langsung ke tabel berikut di **database yang sama dengan app ini**
+(`sql/004_fingerprint_scans.sql`):
+
+```sql
+INSERT INTO fingerprint_scans (finger_id, scanned_at, source) VALUES (?, ?, ?)
+```
+- `finger_id` -- ID pegawai di mesin (harus cocok dengan `employees.finger_id`, lihat Fase 1).
+- `scanned_at` -- **WAJIB UTC**, bukan waktu lokal WITA. Jam mesin fingerprint biasanya
+  waktu lokal (WITA, UTC+8) -- tool sinkron harus **mengurangi 8 jam** dari jam yang dibaca
+  mesin sebelum insert. Seluruh app ini disiplin UTC di semua tabel waktu (sama seperti
+  `attendance_pings`); kalau kolom ini ditulis WITA apa adanya, semua status presensi bakal
+  geser 8 jam. Bug ini sempat kejadian saat migrasi data historis dari `absen` (yang memang
+  WITA apa adanya di cobakinerja) -- sudah diperbaiki di
+  `scripts/migrate-fingerprint-from-cobakinerja.ts`, jadi migrasi historis aman; ini cuma
+  soal jalur tool sinkron baru yang menulis langsung.
+- `source` -- bebas, dipakai buat audit (mis. `'MESIN'`).
+- Jangan ubah nama tabel/3 kolom ini tanpa koordinasi ulang dengan konfigurasi tool sinkron.
+
 ## 3. Deploy ke VPS (cPanel)
 
 Sama seperti `dashboard-kinerja` -- "Setup Node.js App" terpisah, subdomain sendiri,
@@ -93,3 +125,7 @@ gotcha redeploy (`node_modules` bisa ter-reset setelah `git pull`).
   dikurangi `holidays`), bukan diketik manual seperti `harikerja` di `cobakinerja`.
   `historical_work_day_counts` cuma arsip baca-saja dari data lama, tidak dipakai
   aplikasi.
+- `fingerprint_scans` adalah sumber utama presensi (lihat "Kontrak `fingerprint_scans`" di
+  atas), `attendance_pings` (WA) cuma dipakai kalau hari itu tidak ada scan mesin sama
+  sekali. `fingerprint_scans.finger_id` sengaja **tanpa FK keras** ke `employees` supaya
+  scan baru dari tool sinkron tidak pernah ditolak insert-nya.
