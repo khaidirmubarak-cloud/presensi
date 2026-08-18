@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import AdminNav from "../../../components/AdminNav";
 
 type PresensiRow = {
@@ -141,6 +142,7 @@ export default function PresensiPage() {
                 <th className="text-left px-4 py-2.5 font-semibold">Jam Pulang</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Sumber</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Status</th>
+                <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -158,6 +160,14 @@ export default function PresensiPage() {
                       {r.status === "terlambat" && r.telatMenit ? ` (${r.telatMenit} mnt)` : ""}
                       {r.status === "pulang_cepat" && r.pulangCepatMenit ? ` (${r.pulangCepatMenit} mnt)` : ""}
                     </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Link
+                      href={`/admin/presensi/${r.employeeId}`}
+                      className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors"
+                    >
+                      Detail bulanan
+                    </Link>
                   </td>
                 </tr>
               ))}
