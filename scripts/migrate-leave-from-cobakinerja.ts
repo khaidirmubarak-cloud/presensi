@@ -72,10 +72,23 @@ async function migrateLeaveRequests(source: mysql.Connection, target: mysql.Conn
     "SELECT id_ijin, id_user, id_status, tgl_mulai, tgl_selesai, keterangan, status_ijin FROM ijin ORDER BY id_ijin",
   );
 
+  const [leaveTypeRows] = await target.query<any[]>("SELECT id FROM leave_types");
+  const validLeaveTypeIds = new Set((leaveTypeRows as any[]).map((r) => r.id));
+
   let migrated = 0;
-  let skipped = 0;
+  let skippedNoEmployee = 0;
+  let skippedBadStatus = 0;
 
   for (const r of rows as any[]) {
+    // Data lama tidak konsisten -- beberapa id_status di ijin (mis. 'nu', 'S2', 'TA') tidak
+    // punya padanan di tabel status sama sekali (ditemukan lewat pengecekan langsung ke
+    // data live, bukan asumsi). Lewati dengan warning, jangan sampai gagal seluruh migrasi.
+    if (!validLeaveTypeIds.has(r.id_status)) {
+      console.warn(`  lewati id_ijin=${r.id_ijin}: id_status=${r.id_status} tidak ada di leave_types`);
+      skippedBadStatus++;
+      continue;
+    }
+
     const [empRows] = await target.query<any[]>(
       "SELECT e.id FROM employees e JOIN employee_profiles p ON p.employee_id = e.id WHERE p.legacy_id_user = ?",
       [r.id_user],
@@ -83,7 +96,7 @@ async function migrateLeaveRequests(source: mysql.Connection, target: mysql.Conn
     const employeeId = (empRows as any[])[0]?.id;
     if (!employeeId) {
       console.warn(`  lewati id_ijin=${r.id_ijin}: id_user=${r.id_user} tidak ketemu padanan employees`);
-      skipped++;
+      skippedNoEmployee++;
       continue;
     }
 
@@ -107,7 +120,10 @@ async function migrateLeaveRequests(source: mysql.Connection, target: mysql.Conn
     migrated++;
   }
 
-  console.log(`  leave_requests: ${(rows as any[]).length} baris sumber, ${migrated} dimigrasikan, ${skipped} dilewati (id_user tidak ketemu)`);
+  console.log(
+    `  leave_requests: ${(rows as any[]).length} baris sumber, ${migrated} dimigrasikan, ` +
+      `${skippedNoEmployee} dilewati (id_user tidak ketemu), ${skippedBadStatus} dilewati (id_status tidak valid)`,
+  );
 }
 
 async function main() {
