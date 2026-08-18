@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
   if (session.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
-  const date = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  // Default ke tanggal hari ini kalender WITA (bukan UTC) -- sama seperti todayIso() di
+  // app/admin/presensi/page.tsx, supaya konsisten kalau endpoint dipanggil tanpa ?date=.
+  const witaToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Makassar" }).format(new Date());
+  const date = searchParams.get("date") || witaToday;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: "Parameter date tidak valid." }, { status: 400 });
   }
