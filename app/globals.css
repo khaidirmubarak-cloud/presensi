@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #eaf3fb;
+  background-image: radial-gradient(circle at 1px 1px, rgba(31, 62, 94, 0.07) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+::selection {
+  background-color: #2f4a3d;
+  color: #f6f4ee;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
