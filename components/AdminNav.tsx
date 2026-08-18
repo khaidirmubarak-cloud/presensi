@@ -9,6 +9,8 @@ const LINKS = [
   { href: "/admin/master/unit", label: "Unit" },
   { href: "/admin/master/jabatan", label: "Jabatan" },
   { href: "/admin/master/tukin-nonpns-grade", label: "Grade Non-ASN" },
+  { href: "/admin/master/hari-libur", label: "Hari Libur" },
+  { href: "/admin/master/ramadhan", label: "Ramadhan" },
 ];
 
 export default function AdminNav() {

@@ -1,7 +1,8 @@
 # Presensi & Kepegawaian
 
-Fase 1: Data Pegawai & Master Data -- fondasi pengganti `cobakinerja` (lihat
-`/Users/macbook/.claude/plans/nested-popping-cake.md` untuk rencana lengkapnya).
+Fase 1: Data Pegawai & Master Data. Fase 2: Hari Libur & Kalender Kerja -- fondasi
+pengganti `cobakinerja` (lihat `/Users/macbook/.claude/plans/nested-popping-cake.md`
+untuk rencana Fase 2).
 
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri
@@ -28,11 +29,12 @@ SESSION_SECRET=<string-acak-panjang-beda-dari-dashboard-kinerja>
 APP_URL=http://localhost:3000
 ```
 
-Jalankan skema Fase 1 (aman dijalankan ulang -- `CREATE TABLE IF NOT EXISTS`, `ALTER
-TABLE ADD COLUMN` di baris pertama perlu dicek manual sekali saja supaya tidak error kalau
-kolomnya sudah pernah ditambahkan):
+Jalankan skema Fase 1 & 2 (aman dijalankan ulang -- `CREATE TABLE IF NOT EXISTS`, `ALTER
+TABLE ADD COLUMN` di baris pertama `001` perlu dicek manual sekali saja supaya tidak error
+kalau kolomnya sudah pernah ditambahkan):
 ```bash
 mariadb -u <user> -p <database> < sql/001_employee_profiles.sql
+mariadb -u <user> -p <database> < sql/002_calendar.sql
 ```
 
 ```bash
@@ -55,6 +57,11 @@ Aman dijalankan ulang: tabel referensi pakai `INSERT IGNORE`, pegawai dicocokkan
 dan **tidak pernah** menimpa `phone_number`/`password_hash`/`status`/`registration_token`
 pada baris `employees` yang sudah ada (klaim akun WA tetap aman disentuh).
 
+Migrasi kalender (Fase 2 -- `libur`/`ramadhan`/`harikerja`), pakai env yang sama:
+```bash
+npm run migrate:calendar
+```
+
 ## 3. Deploy ke VPS (cPanel)
 
 Sama seperti `dashboard-kinerja` -- "Setup Node.js App" terpisah, subdomain sendiri,
@@ -75,3 +82,7 @@ gotcha redeploy (`node_modules` bisa ter-reset setelah `git pull`).
   referensi di sini.
 - Login di app ini cuma untuk `role='admin'` (lihat `middleware.ts`) -- belum ada
   halaman untuk pegawai biasa di fase ini.
+- Jumlah hari kerja per bulan dihitung otomatis (`lib/calendar.ts`, hari kerja Senin-Jumat
+  dikurangi `holidays`), bukan diketik manual seperti `harikerja` di `cobakinerja`.
+  `historical_work_day_counts` cuma arsip baca-saja dari data lama, tidak dipakai
+  aplikasi.
