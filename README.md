@@ -1,21 +1,38 @@
 # Presensi & Kepegawaian
 
-Fase 1: Data Pegawai & Master Data. Fase 2: Hari Libur & Kalender Kerja. Fase 3: Presensi
-(dashboard admin + status otomatis) -- fondasi pengganti `cobakinerja` (lihat
-`/Users/macbook/.claude/plans/nested-popping-cake.md` untuk rencana Fase 3).
+Fondasi pengganti `cobakinerja`, dibangun bertahap per fase (lihat
+`/Users/macbook/.claude/plans/nested-popping-cake.md` untuk rencana fase yang sedang/baru
+dikerjakan -- file itu ditimpa tiap fase baru, jadi roadmap lengkap dan sudah-selesai
+dicatat di sini, bukan di sana).
 
-Fase 3 dibangun DI ATAS `attendance_pings` yang sudah aktif diisi webhook WA di
-`kinerja`/`dashboard-kinerja` (self-service pegawai) -- app ini menambah tampilan admin
-lintas-pegawai (`/admin/presensi`) dan status otomatis (Hadir/Terlambat/Pulang Cepat)
-berdasar `work_hour_rules` (normal vs Ramadhan). Fase 3b menambahkan `fingerprint_scans`
-sebagai **sumber utama** presensi (WA-ping jadi pelengkap kalau hari itu tidak ada scan
-mesin) -- lihat "Kontrak `fingerprint_scans`" di bawah. Jadwal shift satpam sengaja belum
-masuk fase ini.
+## Roadmap
 
-Fase 4: Ketidakhadiran (`/admin/ketidakhadiran`, admin-only) -- cuti/izin yang disetujui
-otomatis mengubah status presensi hari itu jadi "Cuti" (menang atas shift/ping/fingerprint,
-tapi kalah dari akhir pekan/hari libur). Pengajuan mandiri oleh pegawai (self-service di
-`dashboard-kinerja`) belum ada di fase ini -- admin input & approve atas nama pegawai.
+### Selesai & live di produksi
+
+| Fase | Nama | Catatan |
+|---|---|---|
+| 1 | Data Pegawai & Master Data | 543 pegawai + golongan/unit/jabatan/grade non-ASN dimigrasikan dari cobakinerja |
+| 2 | Hari Libur & Kalender Kerja | 248 hari libur + periode Ramadhan; jumlah hari kerja dihitung otomatis, bukan diketik manual seperti `harikerja` cobakinerja |
+| 3 | Presensi (dashboard admin) | `/admin/presensi` -- status otomatis (Hadir/Terlambat/Pulang Cepat) dari `attendance_pings` (WA-ping, sudah aktif diisi webhook `kinerja`/`dashboard-kinerja`) dibanding `work_hour_rules` (normal vs Ramadhan) |
+| 3b | Presensi Fingerprint | `fingerprint_scans` (1,47 juta baris riwayat) jadi **sumber utama** presensi, WA-ping jadi fallback -- lihat "Kontrak `fingerprint_scans`" di bawah. Juga diretrofit ke `dashboard-kinerja` (dashboard pegawai `lkh.uinpalopo.ac.id`) + fitur detail presensi bulanan per pegawai di sini |
+| 4 | Ketidakhadiran (Cuti/Izin) | `/admin/ketidakhadiran`, admin-only -- 18.342 riwayat cuti + 29 jenis cuti dimigrasikan dari `ijin`/`status`. Cuti disetujui otomatis mengubah status presensi hari itu jadi "Cuti" (menang atas shift/ping/fingerprint, kalah dari akhir pekan/hari libur) |
+
+### Belum dikerjakan
+
+| Fase | Nama | Catatan |
+|---|---|---|
+| 5 | Lembur | Belum dimulai |
+| 6 | Tukin | Belum dimulai -- akan pakai `leave_types.tukin_deduction_percent` (sudah ada dari Fase 4) + data presensi Fase 3/3b |
+| 7 | Uang Makan | Belum dimulai |
+
+### Sengaja ditunda (bukan bagian urutan utama)
+
+- **Self-service pengajuan cuti/izin** oleh pegawai sendiri (form di `dashboard-kinerja`) --
+  saat ini admin-only.
+- **Jembatan sinkron mesin fingerprint real-time** -- kontrak tabel sudah didokumentasikan
+  ("Kontrak `fingerprint_scans`" di bawah), tinggal tool sinkron milik user diarahkan ke sana.
+- **Jadwal shift satpam** -- pegawai `uses_shift=1` masih dikecualikan dari perhitungan
+  status presensi otomatis (sama seperti perilaku cobakinerja lama).
 
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri
