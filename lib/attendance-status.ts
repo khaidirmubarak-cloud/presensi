@@ -54,6 +54,7 @@ export type RamadhanRange = { start_date: string; end_date: string }; // 'YYYY-M
 export type AttendanceStatus =
   | "libur"
   | "shift"
+  | "cuti"
   | "belum_ada_data"
   | "hadir"
   | "terlambat"
@@ -68,6 +69,7 @@ export type DailyStatusResult = {
   telatMenit: number | null;
   pulangCepatMenit: number | null;
   sumber: AttendanceSource;
+  leaveTypeName: string | null;
 };
 
 function witaTimeOfDay(isoDatetime: string): string {
@@ -97,6 +99,7 @@ export function computeDailyStatus(
   ramadhanPeriods: RamadhanRange[],
   rules: WorkHourRule[],
   fingerprintScans: FingerprintScan[] = [],
+  approvedLeaveTypeName: string | null = null,
 ): DailyStatusResult {
   const asUtcDate = new Date(`${date}T00:00:00Z`);
   const empty: DailyStatusResult = {
@@ -106,10 +109,16 @@ export function computeDailyStatus(
     telatMenit: null,
     pulangCepatMenit: null,
     sumber: null,
+    leaveTypeName: null,
   };
 
   if (isWeekend(asUtcDate) || isHoliday(asUtcDate, holidayDates)) {
     return empty;
+  }
+  // Fase 4: cuti/izin disetujui menang atas shift/ping/fingerprint -- sama seperti
+  // ijin_detail override keterangan sebelum logika hadir/telat di hitung.php (cobakinerja).
+  if (approvedLeaveTypeName) {
+    return { ...empty, status: "cuti", leaveTypeName: approvedLeaveTypeName };
   }
   if (usesShift) {
     return { ...empty, status: "shift" };
@@ -129,7 +138,7 @@ export function computeDailyStatus(
   const rule = rules.find((r) => r.day_type === dayType && r.period_type === periodType);
 
   if (!rule) {
-    return { status: "hadir", jamMasuk, jamPulang, telatMenit: null, pulangCepatMenit: null, sumber };
+    return { status: "hadir", jamMasuk, jamPulang, telatMenit: null, pulangCepatMenit: null, sumber, leaveTypeName: null };
   }
 
   const masukMenit = toMinutes(witaTimeOfDay(jamMasuk));
@@ -152,5 +161,6 @@ export function computeDailyStatus(
     telatMenit,
     pulangCepatMenit,
     sumber,
+    leaveTypeName: null,
   };
 }

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 const LINKS = [
   { href: "/admin/pegawai", label: "Pegawai" },
   { href: "/admin/presensi", label: "Presensi" },
+  { href: "/admin/ketidakhadiran", label: "Ketidakhadiran" },
   { href: "/admin/master/golongan", label: "Golongan" },
   { href: "/admin/master/unit", label: "Unit" },
   { href: "/admin/master/jabatan", label: "Jabatan" },
@@ -13,6 +14,7 @@ const LINKS = [
   { href: "/admin/master/hari-libur", label: "Hari Libur" },
   { href: "/admin/master/ramadhan", label: "Ramadhan" },
   { href: "/admin/master/jam-kerja", label: "Jam Kerja" },
+  { href: "/admin/master/jenis-cuti", label: "Jenis Cuti" },
 ];
 
 export default function AdminNav() {

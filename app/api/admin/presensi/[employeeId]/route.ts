@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
   const start = toDbDatetime(new Date(`${month}-01T00:00:00+08:00`));
   const end = toDbDatetime(new Date(`${nextMonth}-01T00:00:00+08:00`));
 
-  const [pingRows, scanRows, holidayRows, ramadhanPeriods, rules] = await Promise.all([
+  const [pingRows, scanRows, holidayRows, ramadhanPeriods, rules, leaveRows] = await Promise.all([
     query<PingRow>(
       "SELECT created_at, within_radius FROM attendance_pings WHERE employee_id = ? AND created_at >= ? AND created_at < ?",
       [employee.id, start, end],
@@ -61,6 +61,13 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
     ),
     query<RamadhanRange>("SELECT start_date, end_date FROM ramadhan_periods"),
     query<WorkHourRule>("SELECT day_type, period_type, check_in_time, check_out_time FROM work_hour_rules"),
+    query<{ name: string; start_date: string; end_date: string }>(
+      `SELECT lt.name, lr.start_date, lr.end_date FROM leave_requests lr
+       JOIN leave_types lt ON lt.id = lr.leave_type_id
+       WHERE lr.employee_id = ? AND lr.status = 'disetujui'
+         AND lr.start_date < ? AND lr.end_date >= ?`,
+      [employee.id, `${nextMonth}-01`, `${month}-01`],
+    ),
   ]);
 
   const holidayDates = new Set(holidayRows.map((h) => h.holiday_date));
@@ -89,6 +96,7 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
   const days = [];
   for (let day = 1; day <= daysInMonth; day++) {
     const date = `${month}-${String(day).padStart(2, "0")}`;
+    const leave = leaveRows.find((l) => date >= l.start_date && date <= l.end_date);
     const daily = computeDailyStatus(
       date,
       pingsByDate.get(date) ?? [],
@@ -97,6 +105,7 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
       ramadhanPeriods,
       rules,
       scansByDate.get(date) ?? [],
+      leave?.name ?? null,
     );
     days.push({ date, ...daily });
   }

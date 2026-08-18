@@ -94,6 +94,16 @@ export async function GET(req: NextRequest) {
     "SELECT day_type, period_type, check_in_time, check_out_time FROM work_hour_rules",
   );
 
+  // Cuti/izin disetujui yang mencakup tanggal ini -- lihat lib/attendance-status.ts,
+  // menang atas shift/ping/fingerprint (Fase 4).
+  const leaveRows = await query<{ employee_id: string; name: string }>(
+    `SELECT lr.employee_id, lt.name FROM leave_requests lr
+     JOIN leave_types lt ON lt.id = lr.leave_type_id
+     WHERE lr.status = 'disetujui' AND ? BETWEEN lr.start_date AND lr.end_date`,
+    [date],
+  );
+  const leaveByEmployee = new Map(leaveRows.map((r) => [r.employee_id, r.name]));
+
   const result = employees.map((e) => {
     const pings = (pingsByEmployee.get(e.id) ?? []).map((p) => ({
       created_at: dbDatetimeToIso(p.created_at)!,
@@ -102,7 +112,16 @@ export async function GET(req: NextRequest) {
     const scans = (scansByEmployee.get(e.id) ?? []).map((s) => ({
       scanned_at: dbDatetimeToIso(s.scanned_at)!,
     }));
-    const daily = computeDailyStatus(date, pings, !!e.uses_shift, holidayDates, ramadhanPeriods, rules, scans);
+    const daily = computeDailyStatus(
+      date,
+      pings,
+      !!e.uses_shift,
+      holidayDates,
+      ramadhanPeriods,
+      rules,
+      scans,
+      leaveByEmployee.get(e.id) ?? null,
+    );
     return {
       employeeId: e.id,
       name: e.name,

@@ -12,6 +12,11 @@ sebagai **sumber utama** presensi (WA-ping jadi pelengkap kalau hari itu tidak a
 mesin) -- lihat "Kontrak `fingerprint_scans`" di bawah. Jadwal shift satpam sengaja belum
 masuk fase ini.
 
+Fase 4: Ketidakhadiran (`/admin/ketidakhadiran`, admin-only) -- cuti/izin yang disetujui
+otomatis mengubah status presensi hari itu jadi "Cuti" (menang atas shift/ping/fingerprint,
+tapi kalah dari akhir pekan/hari libur). Pengajuan mandiri oleh pegawai (self-service di
+`dashboard-kinerja`) belum ada di fase ini -- admin input & approve atas nama pegawai.
+
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri
 (mis. `presensi.uinpalopo.ac.id`), memperluas pola yang sudah dipakai kedua repo itu.
@@ -45,6 +50,7 @@ mariadb -u <user> -p <database> < sql/001_employee_profiles.sql
 mariadb -u <user> -p <database> < sql/002_calendar.sql
 mariadb -u <user> -p <database> < sql/003_attendance_rules.sql
 mariadb -u <user> -p <database> < sql/004_fingerprint_scans.sql
+mariadb -u <user> -p <database> < sql/005_leave.sql
 ```
 
 ```bash
@@ -76,6 +82,12 @@ Migrasi historis fingerprint (Fase 3b -- `absen`, ~1,2 juta baris, butuh waktu l
 dari migrasi lain, ada log progres per bulan):
 ```bash
 npm run migrate:fingerprint
+```
+
+Migrasi ketidakhadiran (Fase 4 -- `status`/`ijin`; `ijin_detail` sengaja tidak dimigrasi,
+lihat catatan di `scripts/migrate-leave-from-cobakinerja.ts`):
+```bash
+npm run migrate:leave
 ```
 
 ## Kontrak `fingerprint_scans` (untuk tool sinkron mesin fingerprint)
