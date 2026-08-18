@@ -98,8 +98,9 @@ export default function PegawaiDetailPage() {
 
   const [ranks, setRanks] = useState<Option[]>([]);
   const [units, setUnits] = useState<Option[]>([]);
-  const [jobClasses, setJobClasses] = useState<Option[]>([]);
-  const [functionalPositions, setFunctionalPositions] = useState<Option[]>([]);
+  const [functionalPositions, setFunctionalPositions] = useState<
+    { id: string; label: string; jobClassId: number | null; jobClassName: string | null }[]
+  >([]);
   const [tukinGrades, setTukinGrades] = useState<Option[]>([]);
 
   useEffect(() => {
@@ -107,11 +108,10 @@ export default function PegawaiDetailPage() {
       fetch(`/api/admin/pegawai/${params.id}`).then((r) => r.json()),
       fetch("/api/admin/master/golongan").then((r) => r.json()),
       fetch("/api/admin/master/unit").then((r) => r.json()),
-      fetch("/api/admin/master/job-classes").then((r) => r.json()),
       fetch("/api/admin/master/functional-positions").then((r) => r.json()),
       fetch("/api/admin/master/tukin-nonpns-grade").then((r) => r.json()),
     ])
-      .then(([pegawaiRes, golonganRes, unitRes, jobClassRes, fpRes, tukinRes]) => {
+      .then(([pegawaiRes, golonganRes, unitRes, fpRes, tukinRes]) => {
         const p: PegawaiDetail = pegawaiRes.pegawai;
         setForm({
           ...p,
@@ -122,9 +122,13 @@ export default function PegawaiDetailPage() {
         });
         setRanks((golonganRes.ranks ?? []).map((r: any) => ({ id: r.id, label: `${r.id} — ${r.code}` })));
         setUnits((unitRes.units ?? []).map((u: any) => ({ id: u.id, label: u.name })));
-        setJobClasses((jobClassRes.jobClasses ?? []).map((c: any) => ({ id: c.id, label: c.name })));
         setFunctionalPositions(
-          (fpRes.functionalPositions ?? []).map((f: any) => ({ id: f.id, label: f.name })),
+          (fpRes.functionalPositions ?? []).map((f: any) => ({
+            id: f.id,
+            label: f.name,
+            jobClassId: f.job_class_id,
+            jobClassName: f.job_class_name,
+          })),
         );
         setTukinGrades((tukinRes.grades ?? []).map((g: any) => ({ id: g.id, label: g.name })));
       })
@@ -253,21 +257,29 @@ export default function PegawaiDetailPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Kelas jabatan">
-              <select className={inputClass} value={form.job_class_id ?? ""} onChange={(e) => set("job_class_id", e.target.value)}>
-                <option value="">— pilih —</option>
-                {jobClasses.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-            </Field>
             <Field label="Jabatan fungsional">
-              <select className={inputClass} value={form.functional_position_id ?? ""} onChange={(e) => set("functional_position_id", e.target.value)}>
+              <select
+                className={inputClass}
+                value={form.functional_position_id ?? ""}
+                onChange={(e) => {
+                  const fp = functionalPositions.find((f) => f.id === e.target.value);
+                  setForm((f) => ({
+                    ...f,
+                    functional_position_id: e.target.value,
+                    job_class_id: fp?.jobClassId ?? null,
+                  }));
+                }}
+              >
                 <option value="">— pilih —</option>
                 {functionalPositions.map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
+              <span className="mt-1.5 block text-[12px] text-muted">
+                Kelas jabatan:{" "}
+                {functionalPositions.find((f) => f.id === form.functional_position_id)?.jobClassName ??
+                  "— mengikuti jabatan fungsional —"}
+              </span>
             </Field>
             <Field label="Jabatan (nama bebas)">
               <input className={inputClass} value={form.position_title ?? ""} onChange={(e) => set("position_title", e.target.value)} placeholder="mis. Kasubag TU" />

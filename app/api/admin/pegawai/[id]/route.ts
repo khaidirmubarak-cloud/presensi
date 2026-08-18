@@ -118,6 +118,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const int = (v: unknown) => (v === "" || v === null || v === undefined ? null : Number(v));
   const bool = (v: unknown) => (v === "" || v === null || v === undefined ? null : v ? 1 : 0);
 
+  // Kelas jabatan mengikuti jabatan fungsional (setiap jabatan fungsional sudah punya kelas
+  // jabatan tetap) -- diturunkan di sini, bukan dipercaya dari input klien, supaya konsisten
+  // dengan functional_positions.job_class_id apa pun yang dikirim form.
+  const functionalPositionId = str(body.functional_position_id);
+  let jobClassId: number | null = null;
+  if (functionalPositionId) {
+    const fp = await queryOne<{ job_class_id: number | null }>(
+      "SELECT job_class_id FROM functional_positions WHERE id = ?",
+      [functionalPositionId],
+    );
+    jobClassId = fp?.job_class_id ?? null;
+  }
+
   try {
     await execute("UPDATE employees SET name = ?, nip = ?, department = ? WHERE id = ?", [
       name,
@@ -161,8 +174,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         str(body.photo_url),
         str(body.rank_id),
         str(body.unit_id),
-        int(body.job_class_id),
-        str(body.functional_position_id),
+        jobClassId,
+        functionalPositionId,
         int(body.tukin_nonpns_grade_id),
         str(body.position_title),
         str(body.position_effective_date),
