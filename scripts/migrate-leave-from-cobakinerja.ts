@@ -67,6 +67,8 @@ async function migrateLeaveTypes(source: mysql.Connection, target: mysql.Connect
   console.log(`  leave_types: ${(rows as any[]).length} baris`);
 }
 
+const BATCH_SIZE = 500;
+
 async function migrateLeaveRequests(source: mysql.Connection, target: mysql.Connection) {
   const [rows] = await source.query<any[]>(
     "SELECT id_ijin, id_user, id_status, tgl_mulai, tgl_selesai, keterangan, status_ijin FROM ijin ORDER BY id_ijin",
@@ -75,9 +77,33 @@ async function migrateLeaveRequests(source: mysql.Connection, target: mysql.Conn
   const [leaveTypeRows] = await target.query<any[]>("SELECT id FROM leave_types");
   const validLeaveTypeIds = new Set((leaveTypeRows as any[]).map((r) => r.id));
 
+  // Dimuat sekali ke memori -- query per-baris ke DB lewat tunnel SSH untuk 19 ribuan baris
+  // terlalu lambat (tiap SELECT+INSERT jadi round-trip terpisah).
+  const [empRows] = await target.query<any[]>(
+    "SELECT p.legacy_id_user AS legacy_id, e.id FROM employees e JOIN employee_profiles p ON p.employee_id = e.id WHERE p.legacy_id_user IS NOT NULL",
+  );
+  const employeeIdByLegacy = new Map((empRows as any[]).map((r) => [r.legacy_id, r.id]));
+
   let migrated = 0;
   let skippedNoEmployee = 0;
   let skippedBadStatus = 0;
+  let batch: any[] = [];
+
+  async function flushBatch() {
+    if (batch.length === 0) return;
+    const placeholders = batch.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(", ");
+    const params = batch.flat();
+    await target.execute(
+      `INSERT INTO leave_requests (legacy_id_ijin, employee_id, leave_type_id, start_date, end_date, reason, status)
+       VALUES ${placeholders}
+       ON DUPLICATE KEY UPDATE
+         employee_id = VALUES(employee_id), leave_type_id = VALUES(leave_type_id),
+         start_date = VALUES(start_date), end_date = VALUES(end_date),
+         reason = VALUES(reason), status = VALUES(status)`,
+      params,
+    );
+    batch = [];
+  }
 
   for (const r of rows as any[]) {
     // Data lama tidak konsisten -- beberapa id_status di ijin (mis. 'nu', 'S2', 'TA') tidak
@@ -89,36 +115,27 @@ async function migrateLeaveRequests(source: mysql.Connection, target: mysql.Conn
       continue;
     }
 
-    const [empRows] = await target.query<any[]>(
-      "SELECT e.id FROM employees e JOIN employee_profiles p ON p.employee_id = e.id WHERE p.legacy_id_user = ?",
-      [r.id_user],
-    );
-    const employeeId = (empRows as any[])[0]?.id;
+    const employeeId = employeeIdByLegacy.get(r.id_user);
     if (!employeeId) {
       console.warn(`  lewati id_ijin=${r.id_ijin}: id_user=${r.id_user} tidak ketemu padanan employees`);
       skippedNoEmployee++;
       continue;
     }
 
-    await target.execute(
-      `INSERT INTO leave_requests (legacy_id_ijin, employee_id, leave_type_id, start_date, end_date, reason, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         employee_id = VALUES(employee_id), leave_type_id = VALUES(leave_type_id),
-         start_date = VALUES(start_date), end_date = VALUES(end_date),
-         reason = VALUES(reason), status = VALUES(status)`,
-      [
-        r.id_ijin,
-        employeeId,
-        r.id_status,
-        r.tgl_mulai,
-        r.tgl_selesai,
-        normalizeStr(r.keterangan),
-        mapStatusIjin(r.status_ijin),
-      ],
-    );
+    batch.push([
+      r.id_ijin,
+      employeeId,
+      r.id_status,
+      r.tgl_mulai,
+      r.tgl_selesai,
+      normalizeStr(r.keterangan),
+      mapStatusIjin(r.status_ijin),
+    ]);
     migrated++;
+
+    if (batch.length >= BATCH_SIZE) await flushBatch();
   }
+  await flushBatch();
 
   console.log(
     `  leave_requests: ${(rows as any[]).length} baris sumber, ${migrated} dimigrasikan, ` +
