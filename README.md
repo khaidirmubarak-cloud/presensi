@@ -1,8 +1,14 @@
 # Presensi & Kepegawaian
 
-Fase 1: Data Pegawai & Master Data. Fase 2: Hari Libur & Kalender Kerja -- fondasi
-pengganti `cobakinerja` (lihat `/Users/macbook/.claude/plans/nested-popping-cake.md`
-untuk rencana Fase 2).
+Fase 1: Data Pegawai & Master Data. Fase 2: Hari Libur & Kalender Kerja. Fase 3: Presensi
+(dashboard admin + status otomatis) -- fondasi pengganti `cobakinerja` (lihat
+`/Users/macbook/.claude/plans/nested-popping-cake.md` untuk rencana Fase 3).
+
+Fase 3 dibangun DI ATAS `attendance_pings` yang sudah aktif diisi webhook WA di
+`kinerja`/`dashboard-kinerja` (self-service pegawai) -- app ini menambah tampilan admin
+lintas-pegawai (`/admin/presensi`) dan status otomatis (Hadir/Terlambat/Pulang Cepat)
+berdasar `work_hour_rules` (normal vs Ramadhan). Jembatan ingestion mesin fingerprint dan
+jadwal shift satpam sengaja belum masuk fase ini.
 
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri
@@ -35,6 +41,7 @@ kalau kolomnya sudah pernah ditambahkan):
 ```bash
 mariadb -u <user> -p <database> < sql/001_employee_profiles.sql
 mariadb -u <user> -p <database> < sql/002_calendar.sql
+mariadb -u <user> -p <database> < sql/003_attendance_rules.sql
 ```
 
 ```bash

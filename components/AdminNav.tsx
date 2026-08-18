@@ -5,12 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 
 const LINKS = [
   { href: "/admin/pegawai", label: "Pegawai" },
+  { href: "/admin/presensi", label: "Presensi" },
   { href: "/admin/master/golongan", label: "Golongan" },
   { href: "/admin/master/unit", label: "Unit" },
   { href: "/admin/master/jabatan", label: "Jabatan" },
   { href: "/admin/master/tukin-nonpns-grade", label: "Grade Non-ASN" },
   { href: "/admin/master/hari-libur", label: "Hari Libur" },
   { href: "/admin/master/ramadhan", label: "Ramadhan" },
+  { href: "/admin/master/jam-kerja", label: "Jam Kerja" },
 ];
 
 export default function AdminNav() {
