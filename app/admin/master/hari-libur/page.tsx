@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "../../../../components/AdminNav";
 
 type Holiday = { id: number; holiday_date: string; description: string };
 
@@ -105,8 +104,7 @@ export default function HariLiburPage() {
   const years = Array.from({ length: currentYear - 2013 + 3 }, (_, i) => 2013 + i);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-6">Hari Libur</h1>
 
       <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8">
@@ -230,6 +228,6 @@ export default function HariLiburPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

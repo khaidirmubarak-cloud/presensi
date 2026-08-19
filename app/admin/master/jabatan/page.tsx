@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "../../../../components/AdminNav";
 
 type JobClass = { id: number; name: string };
 type FunctionalPosition = { id: string; name: string; job_class_id: number | null; job_class_name: string | null };
@@ -232,8 +231,7 @@ export default function JabatanPage() {
   const [tab, setTab] = useState<"kelas" | "fungsional">("kelas");
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-6">Jabatan</h1>
 
       <div className="flex gap-2 mb-6">
@@ -256,6 +254,6 @@ export default function JabatanPage() {
       </div>
 
       {tab === "kelas" ? <JobClassTab /> : <FunctionalPositionTab />}
-    </main>
+    </div>
   );
 }

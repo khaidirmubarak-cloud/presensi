@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import AdminNav from "../../../../components/AdminNav";
 
 type DayRow = {
   date: string;
@@ -101,8 +100,7 @@ export default function PresensiPegawaiPage() {
   }, {});
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-4xl px-6 py-14">
 
       <header className="mb-8">
         <Link href="/admin/presensi" className="text-[13px] font-semibold text-pine hover:underline">
@@ -179,6 +177,6 @@ export default function PresensiPegawaiPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

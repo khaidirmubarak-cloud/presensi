@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AdminNav from "../../../components/AdminNav";
 
 type LeaveRequest = {
   id: number;
@@ -149,8 +148,7 @@ export default function KetidakhadiranPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-5xl px-6 py-14">
 
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Ketidakhadiran</h1>
@@ -327,6 +325,6 @@ export default function KetidakhadiranPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "../../../../components/AdminNav";
 
 type Unit = { id: string; name: string; satker_id: string | null };
 
@@ -72,8 +71,7 @@ export default function UnitPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-6">Unit Kerja</h1>
 
       <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
@@ -143,6 +141,6 @@ export default function UnitPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import AdminNav from "../../../components/AdminNav";
 
 type PresensiRow = {
   employeeId: string;
@@ -86,8 +85,7 @@ export default function PresensiPage() {
   }, {});
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-5xl px-6 py-14">
 
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Presensi</h1>
@@ -178,6 +176,6 @@ export default function PresensiPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

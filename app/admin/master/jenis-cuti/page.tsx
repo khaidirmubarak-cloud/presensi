@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "../../../../components/AdminNav";
 
 type LeaveType = { id: string; name: string; tukin_deduction_percent: number; sort_order: number };
 
@@ -87,8 +86,7 @@ export default function JenisCutiPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Jenis Cuti</h1>
       <p className="text-[14px] text-muted max-w-lg mb-6">
         Katalog jenis cuti/izin. Potongan tukin dipakai fase Tukin nanti, belum aktif dihitung
@@ -175,6 +173,6 @@ export default function JenisCutiPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

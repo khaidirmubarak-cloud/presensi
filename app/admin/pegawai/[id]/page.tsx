@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import AdminNav from "../../../../components/AdminNav";
 
 // Nilai persis apa adanya seperti tersimpan di kolom (bukan enum ternormalisasi) --
 // disamakan dengan cara migrate-from-cobakinerja.ts menyimpannya (normalizeStr(u.status)
@@ -169,16 +168,14 @@ export default function PegawaiDetailPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-14">
-        <AdminNav />
+      <div className="mx-auto max-w-3xl px-6 py-14">
         <p className="text-[14px] text-muted">Memuat…</p>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-3xl px-6 py-14">
 
       <header className="mb-8">
         <Link href="/admin/pegawai" className="text-[13px] font-semibold text-pine hover:underline">
@@ -352,6 +349,6 @@ export default function PegawaiDetailPage() {
           {saving ? "Menyimpan…" : "Simpan"}
         </button>
       </form>
-    </main>
+    </div>
   );
 }

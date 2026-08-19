@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "../../../../components/AdminNav";
 
 type Grade = { id: number; name: string };
 
@@ -72,8 +71,7 @@ export default function TukinNonpnsGradePage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
-      <AdminNav />
+    <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Grade Tukin Non-ASN</h1>
       <p className="text-[13px] text-muted mb-6">
         Dipakai untuk pegawai non-ASN (driver, satpam, petugas klinik, dokter, staf mahad, dll.)
@@ -147,6 +145,6 @@ export default function TukinNonpnsGradePage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }
