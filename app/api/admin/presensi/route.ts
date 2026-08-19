@@ -96,13 +96,13 @@ export async function GET(req: NextRequest) {
 
   // Cuti/izin disetujui yang mencakup tanggal ini -- lihat lib/attendance-status.ts,
   // menang atas shift/ping/fingerprint (Fase 4).
-  const leaveRows = await query<{ employee_id: string; name: string }>(
-    `SELECT lr.employee_id, lt.name FROM leave_requests lr
+  const leaveRows = await query<{ employee_id: string; id: string; name: string }>(
+    `SELECT lr.employee_id, lt.id, lt.name FROM leave_requests lr
      JOIN leave_types lt ON lt.id = lr.leave_type_id
      WHERE lr.status = 'disetujui' AND ? BETWEEN lr.start_date AND lr.end_date`,
     [date],
   );
-  const leaveByEmployee = new Map(leaveRows.map((r) => [r.employee_id, r.name]));
+  const leaveByEmployee = new Map(leaveRows.map((r) => [r.employee_id, { id: r.id, name: r.name }]));
 
   const result = employees.map((e) => {
     const pings = (pingsByEmployee.get(e.id) ?? []).map((p) => ({

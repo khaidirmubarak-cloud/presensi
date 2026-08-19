@@ -61,8 +61,8 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
     ),
     query<RamadhanRange>("SELECT start_date, end_date FROM ramadhan_periods"),
     query<WorkHourRule>("SELECT day_type, period_type, check_in_time, check_out_time FROM work_hour_rules"),
-    query<{ name: string; start_date: string; end_date: string }>(
-      `SELECT lt.name, lr.start_date, lr.end_date FROM leave_requests lr
+    query<{ id: string; name: string; start_date: string; end_date: string }>(
+      `SELECT lt.id, lt.name, lr.start_date, lr.end_date FROM leave_requests lr
        JOIN leave_types lt ON lt.id = lr.leave_type_id
        WHERE lr.employee_id = ? AND lr.status = 'disetujui'
          AND lr.start_date < ? AND lr.end_date >= ?`,
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
       ramadhanPeriods,
       rules,
       scansByDate.get(date) ?? [],
-      leave?.name ?? null,
+      leave ? { id: leave.id, name: leave.name } : null,
     );
     days.push({ date, ...daily });
   }

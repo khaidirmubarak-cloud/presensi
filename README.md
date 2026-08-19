@@ -17,13 +17,14 @@ dicatat di sini, bukan di sana).
 | 3b | Presensi Fingerprint | `fingerprint_scans` (1,47 juta baris riwayat) jadi **sumber utama** presensi, WA-ping jadi fallback -- lihat "Kontrak `fingerprint_scans`" di bawah. Juga diretrofit ke `dashboard-kinerja` (dashboard pegawai `lkh.uinpalopo.ac.id`) + fitur detail presensi bulanan per pegawai di sini |
 | 4 | Ketidakhadiran (Cuti/Izin) | `/admin/ketidakhadiran`, admin-only -- 18.342 riwayat cuti + 29 jenis cuti dimigrasikan dari `ijin`/`status`. Cuti disetujui otomatis mengubah status presensi hari itu jadi "Cuti" (menang atas shift/ping/fingerprint, kalah dari akhir pekan/hari libur) |
 | 5 | Lembur | `/admin/lembur`, admin-only, tanpa alur approval (sama seperti modul `lembur` cobakinerja). `peserta` CSV di cobakinerja dinormalisasi jadi tabel junction `overtime_participants`. **Tidak ada data historis dimigrasikan** -- tabel `lembur` sudah tidak ada sama sekali di database live cobakinerja saat fase ini dikerjakan (2026-08), kemungkinan fitur itu sudah lama rusak diam-diam di sana |
+| 6 | Tukin | `/admin/tukin` -- kalkulasi bulanan (nominal kelas jabatan/grade non-ASN dipotong sesuai telat/pulang cepat/cuti/alpa). Mesin hitung cobakinerja ternyata punya **tiga rumus paralel yang saling tidak konsisten**; sistem baru pakai SATU rumus konsisten, keputusan kebijakan dikonfirmasi user: basis potongan cuti pakai `leave_types.tukin_deduction_percent` (bukan kategori hardcode legacy yang ternyata tidak pernah dipakai kode manapun), Dokter/Klinik dikecualikan total dari potongan (kebijakan resmi), Tugas Belajar TUBE1/TUBE2 (`/admin/master/tugas-belajar`, dulu tanpa UI sama sekali di cobakinerja) override potongan flat 0%/50%. Total potongan di-cap 100%, nominal diterima di-floor minimal 0 (perbaikan dari legacy yang bisa teoritis negatif). Serdos dosen bersertifikasi **ditunda** (lihat di bawah). Data lembur Fase 5 **tidak** dipakai di sini -- dikonfirmasi lewat riset, cobakinerja sendiri tidak pernah mengaitkan lembur ke tukin |
 
 ### Belum dikerjakan
 
 | Fase | Nama | Catatan |
 |---|---|---|
-| 6 | Tukin | Belum dimulai -- akan pakai `leave_types.tukin_deduction_percent` (sudah ada dari Fase 4) + data presensi Fase 3/3b + data lembur Fase 5 |
 | 7 | Uang Makan | Belum dimulai |
+| - | Tukin dosen bersertifikasi (serdos) | Basis tukin dosen serdos di cobakinerja dikurangi nominal tunjangan profesi (tabel `gaji`/`masa_kerja`/`golongan`, belum pernah dimigrasikan sama sekali) -- ditunda dari Fase 6 karena scope migrasi data tambahan yang besar |
 
 ### Sengaja ditunda (bukan bagian urutan utama)
 
@@ -36,6 +37,9 @@ dicatat di sini, bukan di sana).
 - **Cetak Surat Tugas Lembur & Daftar Hadir Kerja Lembur** -- cobakinerja generate dua
   dokumen ini dari data lembur (ada nama pejabat penandatangan hard-coded). Fase 5 di sini
   cuma CRUD data, cetak surat ditunda ke fase terpisah.
+- **Cetak slip tukin / rekap tukin per unit** -- cobakinerja punya beberapa varian laporan
+  cetak (`laprekaptukin*.php`). Fase 6 di sini cuma tabel hasil di admin, belum ada versi
+  cetak/export.
 
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri
@@ -108,6 +112,20 @@ Migrasi ketidakhadiran (Fase 4 -- `status`/`ijin`; `ijin_detail` sengaja tidak d
 lihat catatan di `scripts/migrate-leave-from-cobakinerja.ts`):
 ```bash
 npm run migrate:leave
+```
+
+Migrasi lembur (Fase 5 -- `lembur`): tabel sumbernya sudah tidak ada di database live
+cobakinerja saat fase ini dikerjakan, jadi script ini ada tapi tidak pernah benar-benar
+memindahkan data apa pun di produksi:
+```bash
+npm run migrate:lembur
+```
+
+Migrasi tukin (Fase 6 -- `kelas.tukin`/`tukin_nonpns.tukin` jadi nominal dasar,
+`h_tube` jadi `study_assignments`; histori kalkulasi lama di tabel `tukin` **tidak**
+dimigrasikan, lihat catatan di `scripts/migrate-tukin-from-cobakinerja.ts`):
+```bash
+npm run migrate:tukin
 ```
 
 ## Kontrak `fingerprint_scans` (untuk tool sinkron mesin fingerprint)

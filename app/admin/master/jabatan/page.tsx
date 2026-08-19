@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type JobClass = { id: number; name: string };
+type JobClass = { id: number; name: string; base_amount: string | null };
 type FunctionalPosition = { id: string; name: string; job_class_id: number | null; job_class_name: string | null };
 
 const inputClass =
@@ -13,6 +13,7 @@ function JobClassTab() {
   const [loading, setLoading] = useState(true);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
+  const [baseAmount, setBaseAmount] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,7 +37,7 @@ function JobClassTab() {
       const res = await fetch("/api/admin/master/job-classes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name }),
+        body: JSON.stringify({ id, name, base_amount: baseAmount || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -45,6 +46,7 @@ function JobClassTab() {
       }
       setId("");
       setName("");
+      setBaseAmount("");
       load();
     } catch {
       setError("Terjadi kesalahan jaringan.");
@@ -59,6 +61,15 @@ function JobClassTab() {
     load();
   }
 
+  async function handleUpdateAmount(c: JobClass, value: string) {
+    await fetch(`/api/admin/master/job-classes/${c.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: c.name, base_amount: value || null }),
+    });
+    load();
+  }
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
@@ -69,6 +80,10 @@ function JobClassTab() {
         <label className="block">
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Nama kelas</span>
           <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required />
+        </label>
+        <label className="block">
+          <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Nominal tukin (Rp)</span>
+          <input type="number" min="0" step="1" className={inputClass} value={baseAmount} onChange={(e) => setBaseAmount(e.target.value)} />
         </label>
         <button type="submit" disabled={submitting} className="rounded-full bg-cardGreen px-5 py-2.5 text-[13.5px] font-semibold text-canvas hover:bg-cardGreenDark transition-colors disabled:opacity-60 w-fit">
           {submitting ? "Menyimpan…" : "Tambah"}
@@ -85,6 +100,7 @@ function JobClassTab() {
               <tr>
                 <th className="text-left px-4 py-2.5 font-semibold">ID</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Nama kelas</th>
+                <th className="text-left px-4 py-2.5 font-semibold">Nominal tukin (Rp)</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
               </tr>
             </thead>
@@ -93,6 +109,18 @@ function JobClassTab() {
                 <tr key={c.id} className="border-t border-cardGreenDark/10">
                   <td className="px-4 py-2.5 text-ink">{c.id}</td>
                   <td className="px-4 py-2.5 text-muted">{c.name}</td>
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={c.base_amount ?? ""}
+                      onBlur={(e) => {
+                        if (e.target.value !== (c.base_amount ?? "")) handleUpdateAmount(c, e.target.value);
+                      }}
+                      className="w-32 rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+                    />
+                  </td>
                   <td className="px-4 py-2.5">
                     <button onClick={() => handleDelete(c.id)} className="rounded-full border border-red-700/30 px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-700/10">
                       Hapus

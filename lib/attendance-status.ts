@@ -70,6 +70,7 @@ export type DailyStatusResult = {
   pulangCepatMenit: number | null;
   sumber: AttendanceSource;
   leaveTypeName: string | null;
+  leaveTypeId: string | null;
 };
 
 function witaTimeOfDay(isoDatetime: string): string {
@@ -99,7 +100,7 @@ export function computeDailyStatus(
   ramadhanPeriods: RamadhanRange[],
   rules: WorkHourRule[],
   fingerprintScans: FingerprintScan[] = [],
-  approvedLeaveTypeName: string | null = null,
+  approvedLeave: { id: string; name: string } | null = null,
 ): DailyStatusResult {
   const asUtcDate = new Date(`${date}T00:00:00Z`);
   const empty: DailyStatusResult = {
@@ -110,6 +111,7 @@ export function computeDailyStatus(
     pulangCepatMenit: null,
     sumber: null,
     leaveTypeName: null,
+    leaveTypeId: null,
   };
 
   if (isWeekend(asUtcDate) || isHoliday(asUtcDate, holidayDates)) {
@@ -117,8 +119,8 @@ export function computeDailyStatus(
   }
   // Fase 4: cuti/izin disetujui menang atas shift/ping/fingerprint -- sama seperti
   // ijin_detail override keterangan sebelum logika hadir/telat di hitung.php (cobakinerja).
-  if (approvedLeaveTypeName) {
-    return { ...empty, status: "cuti", leaveTypeName: approvedLeaveTypeName };
+  if (approvedLeave) {
+    return { ...empty, status: "cuti", leaveTypeName: approvedLeave.name, leaveTypeId: approvedLeave.id };
   }
   if (usesShift) {
     return { ...empty, status: "shift" };
@@ -138,7 +140,16 @@ export function computeDailyStatus(
   const rule = rules.find((r) => r.day_type === dayType && r.period_type === periodType);
 
   if (!rule) {
-    return { status: "hadir", jamMasuk, jamPulang, telatMenit: null, pulangCepatMenit: null, sumber, leaveTypeName: null };
+    return {
+      status: "hadir",
+      jamMasuk,
+      jamPulang,
+      telatMenit: null,
+      pulangCepatMenit: null,
+      sumber,
+      leaveTypeName: null,
+      leaveTypeId: null,
+    };
   }
 
   const masukMenit = toMinutes(witaTimeOfDay(jamMasuk));
@@ -162,5 +173,6 @@ export function computeDailyStatus(
     pulangCepatMenit,
     sumber,
     leaveTypeName: null,
+    leaveTypeId: null,
   };
 }

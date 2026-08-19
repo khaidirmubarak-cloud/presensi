@@ -13,7 +13,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   if (!name) return NextResponse.json({ error: "Nama wajib diisi." }, { status: 400 });
 
-  const result = await execute("UPDATE job_classes SET name = ? WHERE id = ?", [name, params.id]);
+  const baseAmount =
+    body?.base_amount === undefined || body?.base_amount === null || body?.base_amount === ""
+      ? null
+      : Number(body.base_amount);
+  if (baseAmount !== null && (!Number.isFinite(baseAmount) || baseAmount < 0)) {
+    return NextResponse.json({ error: "Nominal tukin tidak valid." }, { status: 400 });
+  }
+
+  const result = await execute("UPDATE job_classes SET name = ?, base_amount = ? WHERE id = ?", [
+    name,
+    baseAmount,
+    params.id,
+  ]);
   if (result.affectedRows === 0) {
     return NextResponse.json({ error: "Kelas jabatan tidak ditemukan." }, { status: 404 });
   }

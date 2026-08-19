@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Grade = { id: number; name: string };
+type Grade = { id: number; name: string; base_amount: string | null };
 
 const inputClass =
   "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
@@ -12,10 +12,12 @@ export default function TukinNonpnsGradePage() {
   const [loading, setLoading] = useState(true);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
+  const [baseAmount, setBaseAmount] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [editAmount, setEditAmount] = useState("");
 
   function load() {
     setLoading(true);
@@ -37,7 +39,7 @@ export default function TukinNonpnsGradePage() {
       const res = await fetch("/api/admin/master/tukin-nonpns-grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name }),
+        body: JSON.stringify({ id, name, base_amount: baseAmount || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -46,6 +48,7 @@ export default function TukinNonpnsGradePage() {
       }
       setId("");
       setName("");
+      setBaseAmount("");
       load();
     } catch {
       setError("Terjadi kesalahan jaringan.");
@@ -58,7 +61,7 @@ export default function TukinNonpnsGradePage() {
     await fetch(`/api/admin/master/tukin-nonpns-grade/${gid}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName }),
+      body: JSON.stringify({ name: editName, base_amount: editAmount || null }),
     });
     setEditingId(null);
     load();
@@ -87,6 +90,10 @@ export default function TukinNonpnsGradePage() {
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Nama grade</span>
           <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. Supir" required />
         </label>
+        <label className="block">
+          <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Nominal tukin (Rp)</span>
+          <input type="number" min="0" step="1" className={inputClass} value={baseAmount} onChange={(e) => setBaseAmount(e.target.value)} />
+        </label>
         <button type="submit" disabled={submitting} className="rounded-full bg-cardGreen px-5 py-2.5 text-[13.5px] font-semibold text-canvas hover:bg-cardGreenDark transition-colors disabled:opacity-60 w-fit">
           {submitting ? "Menyimpan…" : "Tambah"}
         </button>
@@ -102,6 +109,7 @@ export default function TukinNonpnsGradePage() {
               <tr>
                 <th className="text-left px-4 py-2.5 font-semibold">ID</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Nama grade</th>
+                <th className="text-left px-4 py-2.5 font-semibold">Nominal tukin (Rp)</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
               </tr>
             </thead>
@@ -111,6 +119,9 @@ export default function TukinNonpnsGradePage() {
                   <tr key={g.id} className="border-t border-cardGreenDark/10 bg-pineLight/40">
                     <td className="px-4 py-2.5">{g.id}</td>
                     <td className="px-4 py-2.5"><input className={inputClass} value={editName} onChange={(e) => setEditName(e.target.value)} /></td>
+                    <td className="px-4 py-2.5">
+                      <input type="number" min="0" step="1" className={inputClass} value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+                    </td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-2">
                         <button onClick={() => saveEdit(g.id)} className="rounded-full bg-cardGreen px-3 py-1.5 text-[12px] font-semibold text-canvas">Simpan</button>
@@ -122,12 +133,14 @@ export default function TukinNonpnsGradePage() {
                   <tr key={g.id} className="border-t border-cardGreenDark/10">
                     <td className="px-4 py-2.5 text-ink">{g.id}</td>
                     <td className="px-4 py-2.5 text-muted">{g.name}</td>
+                    <td className="px-4 py-2.5 text-muted">{g.base_amount ?? "-"}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
                             setEditingId(g.id);
                             setEditName(g.name);
+                            setEditAmount(g.base_amount ?? "");
                           }}
                           className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
                         >
