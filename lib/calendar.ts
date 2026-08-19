@@ -3,6 +3,9 @@
 // tersimpan). Dihitung otomatis di sini, bukan diketik manual seperti `harikerja` lama
 // (lihat sql/002_calendar.sql untuk alasan lengkap).
 
+// Index cocok dengan Date.getUTCDay() (0 = Minggu).
+export const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
 export function isWeekend(date: Date): boolean {
   const day = date.getUTCDay();
   return day === 0 || day === 6;

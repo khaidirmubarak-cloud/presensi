@@ -33,6 +33,7 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/master/ramadhan", label: "Ramadhan" },
       { href: "/admin/master/jam-kerja", label: "Jam Kerja" },
       { href: "/admin/master/jenis-cuti", label: "Jenis Cuti" },
+      { href: "/admin/master/potongan-tukin", label: "Potongan Tukin" },
     ],
   },
 ];

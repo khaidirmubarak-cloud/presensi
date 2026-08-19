@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne, execute, dbDatetimeToIso, toDbDatetime } from "../../../../lib/db";
 import { getSession } from "../../../../lib/auth";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange, type DailyStatusResult } from "../../../../lib/attendance-status";
-import { computeMonthlyDeductionPercent, type StudyAssignmentType } from "../../../../lib/tukin";
+import { computeMonthlyDeductionPercent, type StudyAssignmentType, type DeductionTier } from "../../../../lib/tukin";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   const { y, m, nextMonth, start, end } = monthRange(period);
 
   // Data global, sekali fetch (dipakai semua pegawai).
-  const [holidayRows, ramadhanPeriods, rules, leaveTypeRows, settingsRow] = await Promise.all([
+  const [holidayRows, ramadhanPeriods, rules, leaveTypeRows, settingsRow, tierRows] = await Promise.all([
     query<{ holiday_date: string }>("SELECT holiday_date FROM holidays WHERE holiday_date >= ? AND holiday_date < ?", [
       `${period}-01`,
       `${nextMonth}-01`,
@@ -83,10 +83,12 @@ export async function POST(req: NextRequest) {
     query<WorkHourRule>("SELECT day_type, period_type, check_in_time, check_out_time FROM work_hour_rules"),
     query<{ id: string; tukin_deduction_percent: string }>("SELECT id, tukin_deduction_percent FROM leave_types"),
     queryOne<{ alpa_deduction_percent: string }>("SELECT alpa_deduction_percent FROM tukin_settings WHERE id = 1"),
+    query<{ max_minutes: number | null; percent: string }>("SELECT max_minutes, percent FROM tukin_deduction_tiers ORDER BY sort_order"),
   ]);
   const holidayDates = new Set(holidayRows.map((h) => h.holiday_date));
   const leaveDeductionPercentById = new Map(leaveTypeRows.map((r) => [r.id, Number(r.tukin_deduction_percent)]));
   const alpaDeductionPercent = Number(settingsRow?.alpa_deduction_percent ?? 3);
+  const tiers: DeductionTier[] = tierRows.map((t) => ({ max_minutes: t.max_minutes, percent: Number(t.percent) }));
 
   // Semua pegawai aktif + resolusi nominal dasar (kelas jabatan ASN vs grade non-ASN).
   const employees = await query<EmployeeRow>(
@@ -199,6 +201,7 @@ export async function POST(req: NextRequest) {
     const isExempt = e.employee_category === "DOKTER" || e.employee_category === "KLINIK";
     const deductionPercent = computeMonthlyDeductionPercent(
       dailyStatuses,
+      tiers,
       leaveDeductionPercentById,
       alpaDeductionPercent,
       isExempt,

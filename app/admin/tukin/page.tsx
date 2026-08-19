@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 
 type Calculation = {
   employee_id: string;
@@ -128,6 +129,7 @@ export default function TukinPage() {
                   <th className="text-right px-4 py-2.5 font-semibold">Potongan %</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Potongan Rp</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Diterima</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,6 +144,14 @@ export default function TukinPage() {
                     <td className="px-4 py-2.5 text-muted text-right">{Number(c.deduction_percent).toFixed(2)}%</td>
                     <td className="px-4 py-2.5 text-muted text-right">Rp{rupiah(c.deduction_amount)}</td>
                     <td className="px-4 py-2.5 text-ink text-right font-semibold">Rp{rupiah(c.net_amount)}</td>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/admin/tukin/${c.employee_id}?period=${period}`}
+                        className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                      >
+                        Detail
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
