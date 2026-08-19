@@ -16,13 +16,13 @@ dicatat di sini, bukan di sana).
 | 3 | Presensi (dashboard admin) | `/admin/presensi` -- status otomatis (Hadir/Terlambat/Pulang Cepat) dari `attendance_pings` (WA-ping, sudah aktif diisi webhook `kinerja`/`dashboard-kinerja`) dibanding `work_hour_rules` (normal vs Ramadhan) |
 | 3b | Presensi Fingerprint | `fingerprint_scans` (1,47 juta baris riwayat) jadi **sumber utama** presensi, WA-ping jadi fallback -- lihat "Kontrak `fingerprint_scans`" di bawah. Juga diretrofit ke `dashboard-kinerja` (dashboard pegawai `lkh.uinpalopo.ac.id`) + fitur detail presensi bulanan per pegawai di sini |
 | 4 | Ketidakhadiran (Cuti/Izin) | `/admin/ketidakhadiran`, admin-only -- 18.342 riwayat cuti + 29 jenis cuti dimigrasikan dari `ijin`/`status`. Cuti disetujui otomatis mengubah status presensi hari itu jadi "Cuti" (menang atas shift/ping/fingerprint, kalah dari akhir pekan/hari libur) |
+| 5 | Lembur | `/admin/lembur`, admin-only, tanpa alur approval (sama seperti modul `lembur` cobakinerja). `peserta` CSV di cobakinerja dinormalisasi jadi tabel junction `overtime_participants`. **Tidak ada data historis dimigrasikan** -- tabel `lembur` sudah tidak ada sama sekali di database live cobakinerja saat fase ini dikerjakan (2026-08), kemungkinan fitur itu sudah lama rusak diam-diam di sana |
 
 ### Belum dikerjakan
 
 | Fase | Nama | Catatan |
 |---|---|---|
-| 5 | Lembur | Belum dimulai |
-| 6 | Tukin | Belum dimulai -- akan pakai `leave_types.tukin_deduction_percent` (sudah ada dari Fase 4) + data presensi Fase 3/3b |
+| 6 | Tukin | Belum dimulai -- akan pakai `leave_types.tukin_deduction_percent` (sudah ada dari Fase 4) + data presensi Fase 3/3b + data lembur Fase 5 |
 | 7 | Uang Makan | Belum dimulai |
 
 ### Sengaja ditunda (bukan bagian urutan utama)
@@ -33,6 +33,9 @@ dicatat di sini, bukan di sana).
   ("Kontrak `fingerprint_scans`" di bawah), tinggal tool sinkron milik user diarahkan ke sana.
 - **Jadwal shift satpam** -- pegawai `uses_shift=1` masih dikecualikan dari perhitungan
   status presensi otomatis (sama seperti perilaku cobakinerja lama).
+- **Cetak Surat Tugas Lembur & Daftar Hadir Kerja Lembur** -- cobakinerja generate dua
+  dokumen ini dari data lembur (ada nama pejabat penandatangan hard-coded). Fase 5 di sini
+  cuma CRUD data, cetak surat ditunda ke fase terpisah.
 
 Next.js (App Router, TS) + MariaDB, berbagi database yang sama dengan `dashboard-kinerja`
 dan `kinerja` (bukan database baru) -- codebase terpisah, deploy ke subdomain sendiri

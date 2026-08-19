@@ -11,6 +11,7 @@ const PRIMARY: NavItem[] = [
   { href: "/admin/pegawai", label: "Pegawai" },
   { href: "/admin/presensi", label: "Presensi" },
   { href: "/admin/ketidakhadiran", label: "Ketidakhadiran" },
+  { href: "/admin/lembur", label: "Lembur" },
 ];
 
 const GROUPS: NavGroup[] = [

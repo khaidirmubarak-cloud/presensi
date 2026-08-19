@@ -10,7 +10,8 @@
     "migrate:cobakinerja": "tsx scripts/migrate-from-cobakinerja.ts",
     "migrate:calendar": "tsx scripts/migrate-calendar-from-cobakinerja.ts",
     "migrate:fingerprint": "tsx scripts/migrate-fingerprint-from-cobakinerja.ts",
-    "migrate:leave": "tsx scripts/migrate-leave-from-cobakinerja.ts"
+    "migrate:leave": "tsx scripts/migrate-leave-from-cobakinerja.ts",
+    "migrate:lembur": "tsx scripts/migrate-lembur-from-cobakinerja.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
