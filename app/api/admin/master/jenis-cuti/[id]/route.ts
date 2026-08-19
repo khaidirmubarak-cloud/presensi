@@ -12,14 +12,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const tukinDeductionPercent = Number(body?.tukin_deduction_percent) || 0;
+  const countsTowardMealAllowance = body?.counts_toward_meal_allowance ? 1 : 0;
   const sortOrder = Number(body?.sort_order) || 0;
   if (!name) {
     return NextResponse.json({ error: "Nama jenis cuti wajib diisi." }, { status: 400 });
   }
 
   const result = await execute(
-    "UPDATE leave_types SET name = ?, tukin_deduction_percent = ?, sort_order = ? WHERE id = ?",
-    [name, tukinDeductionPercent, sortOrder, params.id],
+    "UPDATE leave_types SET name = ?, tukin_deduction_percent = ?, counts_toward_meal_allowance = ?, sort_order = ? WHERE id = ?",
+    [name, tukinDeductionPercent, countsTowardMealAllowance, sortOrder, params.id],
   );
   if (result.affectedRows === 0) {
     return NextResponse.json({ error: "Jenis cuti tidak ditemukan." }, { status: 404 });

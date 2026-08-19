@@ -10,7 +10,7 @@ export async function GET() {
   if (session.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const leaveTypes = await query(
-    "SELECT id, name, tukin_deduction_percent, sort_order FROM leave_types ORDER BY sort_order, id",
+    "SELECT id, name, tukin_deduction_percent, counts_toward_meal_allowance, sort_order FROM leave_types ORDER BY sort_order, id",
   );
   return NextResponse.json({ leaveTypes });
 }
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   const id = typeof body?.id === "string" ? body.id.trim() : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const tukinDeductionPercent = Number(body?.tukin_deduction_percent) || 0;
+  const countsTowardMealAllowance = body?.counts_toward_meal_allowance ? 1 : 0;
   const sortOrder = Number(body?.sort_order) || 0;
 
   if (!id || !name) {
@@ -36,11 +37,19 @@ export async function POST(req: NextRequest) {
   }
 
   await execute(
-    "INSERT INTO leave_types (id, name, tukin_deduction_percent, sort_order) VALUES (?, ?, ?, ?)",
-    [id, name, tukinDeductionPercent, sortOrder],
+    "INSERT INTO leave_types (id, name, tukin_deduction_percent, counts_toward_meal_allowance, sort_order) VALUES (?, ?, ?, ?, ?)",
+    [id, name, tukinDeductionPercent, countsTowardMealAllowance, sortOrder],
   );
   return NextResponse.json(
-    { leaveType: { id, name, tukin_deduction_percent: tukinDeductionPercent, sort_order: sortOrder } },
+    {
+      leaveType: {
+        id,
+        name,
+        tukin_deduction_percent: tukinDeductionPercent,
+        counts_toward_meal_allowance: countsTowardMealAllowance,
+        sort_order: sortOrder,
+      },
+    },
     { status: 201 },
   );
 }

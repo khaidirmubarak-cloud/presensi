@@ -18,12 +18,12 @@ dicatat di sini, bukan di sana).
 | 4 | Ketidakhadiran (Cuti/Izin) | `/admin/ketidakhadiran`, admin-only -- 18.342 riwayat cuti + 29 jenis cuti dimigrasikan dari `ijin`/`status`. Cuti disetujui otomatis mengubah status presensi hari itu jadi "Cuti" (menang atas shift/ping/fingerprint, kalah dari akhir pekan/hari libur) |
 | 5 | Lembur | `/admin/lembur`, admin-only, tanpa alur approval (sama seperti modul `lembur` cobakinerja). `peserta` CSV di cobakinerja dinormalisasi jadi tabel junction `overtime_participants`. **Tidak ada data historis dimigrasikan** -- tabel `lembur` sudah tidak ada sama sekali di database live cobakinerja saat fase ini dikerjakan (2026-08), kemungkinan fitur itu sudah lama rusak diam-diam di sana |
 | 6 | Tukin | `/admin/tukin` -- kalkulasi bulanan (nominal kelas jabatan/grade non-ASN dipotong sesuai telat/pulang cepat/cuti/alpa). Mesin hitung cobakinerja ternyata punya **tiga rumus paralel yang saling tidak konsisten**; sistem baru pakai SATU rumus konsisten, keputusan kebijakan dikonfirmasi user: basis potongan cuti pakai `leave_types.tukin_deduction_percent` (bukan kategori hardcode legacy yang ternyata tidak pernah dipakai kode manapun), Dokter/Klinik dikecualikan total dari potongan (kebijakan resmi), Tugas Belajar TUBE1/TUBE2 (`/admin/master/tugas-belajar`, dulu tanpa UI sama sekali di cobakinerja) override potongan flat 0%/50%. Total potongan di-cap 100%, nominal diterima di-floor minimal 0 (perbaikan dari legacy yang bisa teoritis negatif). Serdos dosen bersertifikasi **ditunda** (lihat di bawah). Data lembur Fase 5 **tidak** dipakai di sini -- dikonfirmasi lewat riset, cobakinerja sendiri tidak pernah mengaitkan lembur ke tukin. **Fase 6b**: halaman detail harian per pegawai (`/admin/tukin/[employeeId]`, rincian Terlambat/PSW/Tanpa Keterangan/Lainnya/Total per tanggal, gaya sama seperti laporan "Data Kehadiran" cobakinerja) + tier potongan telat/pulang cepat dan persentase alpa dipindah dari hardcode ke `/admin/master/potongan-tukin` (admin-editable, konsisten dengan pola aturan bisnis lain di aplikasi ini) |
+| 7 | Uang Makan | `/admin/uang-makan` -- kalkulasi bulanan: jumlah hari hadir (termasuk jenis cuti/izin yang ditandai `counts_toward_meal_allowance` di menu Jenis Cuti, mis. SP/EA dari cobakinerja) dikali nominal per Golongan (`/admin/master/golongan`, kolom baru "Uang Makan"/"Pajak"), dipotong pajak. Beda dari Tukin, formula cobakinerja di sini **konsisten** (satu rumus, dipakai sama untuk laporan PNS maupun PPPK). Eligibility per pegawai (`gets_meal_allowance`) dan basis golongan (`rank_id`) sudah lengkap sejak Fase 1, jadi migrasi Fase 7 cuma nominal per golongan + flag 2 jenis cuti -- tidak ada data per-pegawai yang perlu disentuh |
 
 ### Belum dikerjakan
 
 | Fase | Nama | Catatan |
 |---|---|---|
-| 7 | Uang Makan | Belum dimulai |
 | - | Tukin dosen bersertifikasi (serdos) | Basis tukin dosen serdos di cobakinerja dikurangi nominal tunjangan profesi (tabel `gaji`/`masa_kerja`/`golongan`, belum pernah dimigrasikan sama sekali) -- ditunda dari Fase 6 karena scope migrasi data tambahan yang besar |
 
 ### Sengaja ditunda (bukan bagian urutan utama)
@@ -128,6 +128,13 @@ dimigrasikan, lihat catatan di `scripts/migrate-tukin-from-cobakinerja.ts`):
 npm run migrate:tukin
 ```
 
+Migrasi uang makan (Fase 7 -- `golongan.um`/`golongan.pajak` jadi nominal per golongan,
+`leave_types` SP/EA ditandai `counts_toward_meal_allowance`; tidak ada data per-pegawai
+yang dimigrasikan di sini, lihat catatan di `scripts/migrate-uang-makan-from-cobakinerja.ts`):
+```bash
+npm run migrate:uang-makan
+```
+
 ## Kontrak `fingerprint_scans` (untuk tool sinkron mesin fingerprint)
 
 `absen` di cobakinerja **tidak diisi oleh kode PHP manapun** (dikonfirmasi: cuma ada fitur
@@ -166,9 +173,9 @@ gotcha redeploy (`node_modules` bisa ter-reset setelah `git pull`).
   `dashboard-kinerja`. Semua field HR/payroll baru disimpan di `employee_profiles` dan
   tabel referensi (`ranks`, `units`, `job_classes`, `functional_positions`,
   `tukin_nonpns_grades`, `satker`).
-- Kolom nominal uang (tukin/uang makan) sengaja TIDAK dimodelkan di fase ini -- lihat
-  rencana Fase 1 untuk alasannya. Fase Tukin/Uang Makan nanti FK balik ke tabel
-  referensi di sini.
+- Kolom nominal uang (tukin/uang makan) sengaja TIDAK dimodelkan di Fase 1 -- ditambahkan
+  belakangan di Fase 6 (`job_classes.base_amount`, `tukin_nonpns_grades.base_amount`) dan
+  Fase 7 (`ranks.meal_amount`, `ranks.meal_tax_percent`).
 - Login di app ini cuma untuk `role='admin'` (lihat `middleware.ts`) -- belum ada
   halaman untuk pegawai biasa di fase ini.
 - Jumlah hari kerja per bulan dihitung otomatis (`lib/calendar.ts`, hari kerja Senin-Jumat

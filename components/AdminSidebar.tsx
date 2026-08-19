@@ -13,6 +13,7 @@ const PRIMARY: NavItem[] = [
   { href: "/admin/ketidakhadiran", label: "Ketidakhadiran" },
   { href: "/admin/lembur", label: "Lembur" },
   { href: "/admin/tukin", label: "Tukin" },
+  { href: "/admin/uang-makan", label: "Uang Makan" },
 ];
 
 const GROUPS: NavGroup[] = [

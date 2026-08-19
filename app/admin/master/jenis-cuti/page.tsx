@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-type LeaveType = { id: string; name: string; tukin_deduction_percent: number; sort_order: number };
+type LeaveType = {
+  id: string;
+  name: string;
+  tukin_deduction_percent: number;
+  counts_toward_meal_allowance: number;
+  sort_order: number;
+};
 
 const inputClass =
   "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
@@ -13,12 +19,14 @@ export default function JenisCutiPage() {
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [deduction, setDeduction] = useState("0");
+  const [countsMeal, setCountsMeal] = useState(false);
   const [sortOrder, setSortOrder] = useState("0");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDeduction, setEditDeduction] = useState("0");
+  const [editCountsMeal, setEditCountsMeal] = useState(false);
   const [editSortOrder, setEditSortOrder] = useState("0");
 
   function load() {
@@ -45,6 +53,7 @@ export default function JenisCutiPage() {
           id,
           name,
           tukin_deduction_percent: Number(deduction),
+          counts_toward_meal_allowance: countsMeal,
           sort_order: Number(sortOrder),
         }),
       });
@@ -56,6 +65,7 @@ export default function JenisCutiPage() {
       setId("");
       setName("");
       setDeduction("0");
+      setCountsMeal(false);
       setSortOrder("0");
       load();
     } catch {
@@ -72,6 +82,7 @@ export default function JenisCutiPage() {
       body: JSON.stringify({
         name: editName,
         tukin_deduction_percent: Number(editDeduction),
+        counts_toward_meal_allowance: editCountsMeal,
         sort_order: Number(editSortOrder),
       }),
     });
@@ -89,8 +100,9 @@ export default function JenisCutiPage() {
     <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Jenis Cuti</h1>
       <p className="text-[14px] text-muted max-w-lg mb-6">
-        Katalog jenis cuti/izin. Potongan tukin dipakai fase Tukin nanti, belum aktif dihitung
-        di fase ini.
+        Katalog jenis cuti/izin. Potongan tukin dipakai kalkulasi di menu Tukin. "Dihitung
+        uang makan" menandai jenis cuti yang tetap dianggap hadir untuk kalkulasi di menu
+        Uang Makan (mis. Surat Pernyataan Tanggung Jawab Mutlak, Absen Pusaka).
       </p>
 
       <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
@@ -110,6 +122,10 @@ export default function JenisCutiPage() {
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Urutan</span>
           <input type="number" className={inputClass} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </label>
+        <label className="flex items-center gap-2 sm:col-span-2">
+          <input type="checkbox" checked={countsMeal} onChange={(e) => setCountsMeal(e.target.checked)} />
+          <span className="text-[12.5px] font-semibold text-ink">Dihitung uang makan</span>
+        </label>
         <button type="submit" disabled={submitting} className="sm:col-span-4 rounded-full bg-cardGreen px-5 py-2.5 text-[13.5px] font-semibold text-canvas hover:bg-cardGreenDark transition-colors disabled:opacity-60 w-fit">
           {submitting ? "Menyimpan…" : "Tambah"}
         </button>
@@ -119,13 +135,14 @@ export default function JenisCutiPage() {
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden">
+        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
                 <th className="text-left px-4 py-2.5 font-semibold">Kode</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Nama</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Potongan Tukin</th>
+                <th className="text-left px-4 py-2.5 font-semibold">Uang Makan</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
               </tr>
             </thead>
@@ -136,6 +153,9 @@ export default function JenisCutiPage() {
                     <td className="px-4 py-2.5 text-ink">{t.id}</td>
                     <td className="px-4 py-2.5"><input className={inputClass} value={editName} onChange={(e) => setEditName(e.target.value)} /></td>
                     <td className="px-4 py-2.5"><input type="number" step="0.01" className={inputClass} value={editDeduction} onChange={(e) => setEditDeduction(e.target.value)} /></td>
+                    <td className="px-4 py-2.5">
+                      <input type="checkbox" checked={editCountsMeal} onChange={(e) => setEditCountsMeal(e.target.checked)} />
+                    </td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-2">
                         <button onClick={() => saveEdit(t.id)} className="rounded-full bg-cardGreen px-3 py-1.5 text-[12px] font-semibold text-canvas">Simpan</button>
@@ -148,6 +168,7 @@ export default function JenisCutiPage() {
                     <td className="px-4 py-2.5 text-ink">{t.id}</td>
                     <td className="px-4 py-2.5 text-muted">{t.name}</td>
                     <td className="px-4 py-2.5 text-muted">{t.tukin_deduction_percent}%</td>
+                    <td className="px-4 py-2.5 text-muted">{t.counts_toward_meal_allowance ? "Ya" : "-"}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-2">
                         <button
@@ -155,6 +176,7 @@ export default function JenisCutiPage() {
                             setEditingId(t.id);
                             setEditName(t.name);
                             setEditDeduction(String(t.tukin_deduction_percent));
+                            setEditCountsMeal(!!t.counts_toward_meal_allowance);
                             setEditSortOrder(String(t.sort_order));
                           }}
                           className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"

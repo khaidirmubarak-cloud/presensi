@@ -12,13 +12,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json().catch(() => null);
   const code = typeof body?.code === "string" ? body.code.trim() : "";
   const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const mealAmount =
+    body?.meal_amount === undefined || body?.meal_amount === null || body?.meal_amount === ""
+      ? null
+      : Number(body.meal_amount);
+  const mealTaxPercent = Number(body?.meal_tax_percent) || 0;
   if (!code || !title) {
     return NextResponse.json({ error: "Kode dan nama pangkat wajib diisi." }, { status: 400 });
   }
+  if (mealAmount !== null && (!Number.isFinite(mealAmount) || mealAmount < 0)) {
+    return NextResponse.json({ error: "Nominal uang makan tidak valid." }, { status: 400 });
+  }
 
-  const result = await execute("UPDATE ranks SET code = ?, title = ? WHERE id = ?", [
+  const result = await execute("UPDATE ranks SET code = ?, title = ?, meal_amount = ?, meal_tax_percent = ? WHERE id = ?", [
     code,
     title,
+    mealAmount,
+    mealTaxPercent,
     params.id,
   ]);
   if (result.affectedRows === 0) {
