@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
      LEFT JOIN job_classes jc ON jc.id = p.job_class_id
      LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
-     WHERE e.status = 'active' AND (p.employment_status IS NULL OR p.employment_status = 'aktif')`,
+     WHERE p.employment_status IS NULL OR p.employment_status = 'aktif'`,
   );
 
   const studyRows = await query<{ employee_id: string; type: StudyAssignmentType }>(
