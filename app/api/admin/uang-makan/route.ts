@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, dbDatetimeToIso, toDbDatetime, execute } from "../../../../lib/db";
+import { query, queryOne, dbDatetimeToIso, toDbDatetime, execute } from "../../../../lib/db";
 import { getSession } from "../../../../lib/auth";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange } from "../../../../lib/attendance-status";
 import { isEligibleMealDay } from "../../../../lib/uang-makan";
 
 export const dynamic = "force-dynamic";
+
+const ALLOWED_PAGE_SIZES = [10, 50, 100];
 
 type EmployeeRow = {
   id: string;
@@ -40,6 +42,17 @@ export async function GET(req: NextRequest) {
 
   const where = q ? "AND (e.name LIKE ? OR e.nip LIKE ?)" : "";
   const params = q ? [period, `%${q}%`, `%${q}%`] : [period];
+  const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
+    ? Number(searchParams.get("pageSize"))
+    : 50;
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const offset = (page - 1) * pageSize;
+
+  const countRow = await queryOne<{ total: number }>(
+    `SELECT COUNT(*) AS total FROM meal_allowance_calculations mac JOIN employees e ON e.id = mac.employee_id WHERE mac.period = ? ${where}`,
+    params,
+  );
+  const total = countRow?.total ?? 0;
 
   const rows = await query(
     `SELECT mac.employee_id, e.name, e.nip, r.code AS rank_code,
@@ -49,11 +62,12 @@ export async function GET(req: NextRequest) {
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
      LEFT JOIN ranks r ON r.id = p.rank_id
      WHERE mac.period = ? ${where}
-     ORDER BY e.name`,
-    params,
+     ORDER BY e.name
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset],
   );
 
-  return NextResponse.json({ period, calculations: rows });
+  return NextResponse.json({ period, calculations: rows, total, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {

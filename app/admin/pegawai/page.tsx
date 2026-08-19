@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Pagination from "../../../components/Pagination";
 
 type Pegawai = {
   id: string;
@@ -233,29 +234,12 @@ export default function AdminPegawaiPage() {
         )}
 
         {!loading && total > 0 && (
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-[12.5px] text-muted">
-              Halaman {page} dari {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded-full border border-cardGreenDark/30 px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-40"
-              >
-                Sebelumnya
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded-full border border-cardGreenDark/30 px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-40"
-              >
-                Berikutnya
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          />
         )}
       </section>
     </div>

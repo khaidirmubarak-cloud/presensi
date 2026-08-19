@@ -14,6 +14,28 @@ export function minutesToDeductionPercent(minutes: number | null, tiers: Deducti
   return 0;
 }
 
+export type SalaryScale = { rank_id: string; years: number; nominal: number };
+
+// Basis "potongan awal" untuk dosen serdos (cetak/laptukin.php cobakinerja): gaji pokok
+// pegawai dari golongan + masa kerja golongan. Exact match dulu, kalau tidak ada pakai
+// baris `years` tertinggi yang <= masa kerja pegawai untuk golongan itu (fallback pegawai
+// senior di luar rentang tabel) -- null kalau golongan itu sama sekali tidak ada di tabel.
+export function resolveSalaryScaleAmount(
+  rankId: string | null,
+  serviceYears: number | null,
+  scales: SalaryScale[],
+): number | null {
+  if (!rankId || serviceYears === null) return null;
+  const forRank = scales.filter((s) => s.rank_id === rankId);
+  if (forRank.length === 0) return null;
+
+  const exact = forRank.find((s) => s.years === serviceYears);
+  if (exact) return exact.nominal;
+
+  const below = forRank.filter((s) => s.years <= serviceYears).sort((a, b) => b.years - a.years);
+  return below[0]?.nominal ?? null;
+}
+
 export type StudyAssignmentType = "tube1" | "tube2" | null;
 
 export type DailyDeductionBreakdown = {

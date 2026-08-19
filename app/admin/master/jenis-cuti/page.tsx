@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Pagination from "../../../../components/Pagination";
 
 type LeaveType = {
   id: string;
@@ -13,9 +14,14 @@ type LeaveType = {
 const inputClass =
   "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
+const PAGE_SIZES = [10, 50, 100];
+
 export default function JenisCutiPage() {
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [deduction, setDeduction] = useState("0");
@@ -31,15 +37,23 @@ export default function JenisCutiPage() {
 
   function load() {
     setLoading(true);
-    return fetch("/api/admin/master/jenis-cuti")
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", String(pageSize));
+    return fetch(`/api/admin/master/jenis-cuti?${params.toString()}`)
       .then((r) => r.json())
-      .then((d) => setLeaveTypes(d.leaveTypes ?? []))
+      .then((d) => {
+        setLeaveTypes(d.leaveTypes ?? []);
+        setTotal(d.total ?? 0);
+      })
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,9 +146,29 @@ export default function JenisCutiPage() {
         {error && <p className="sm:col-span-4 text-[13px] text-red-700">{error}</p>}
       </form>
 
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[12.5px] text-muted">{total} jenis cuti</span>
+        <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
+          Tampilkan
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
       ) : (
+        <>
         <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
@@ -194,6 +228,13 @@ export default function JenisCutiPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
+        </>
       )}
     </div>
   );

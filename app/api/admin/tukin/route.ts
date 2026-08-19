@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne, execute, dbDatetimeToIso, toDbDatetime } from "../../../../lib/db";
 import { getSession } from "../../../../lib/auth";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange, type DailyStatusResult } from "../../../../lib/attendance-status";
-import { computeMonthlyDeductionPercent, type StudyAssignmentType, type DeductionTier } from "../../../../lib/tukin";
+import {
+  computeMonthlyDeductionPercent,
+  resolveSalaryScaleAmount,
+  type StudyAssignmentType,
+  type DeductionTier,
+  type SalaryScale,
+} from "../../../../lib/tukin";
 
 export const dynamic = "force-dynamic";
+
+const ALLOWED_PAGE_SIZES = [10, 50, 100];
 
 type EmployeeRow = {
   id: string;
@@ -12,10 +20,14 @@ type EmployeeRow = {
   nip: string | null;
   uses_shift: number | null;
   employee_category: string | null;
+  rank_id: string | null;
+  service_years: number | null;
+  is_serdos: number | null;
   job_class_name: string | null;
   job_class_amount: string | null;
   grade_name: string | null;
   grade_amount: string | null;
+  position_name: string | null;
 };
 
 type PingRow = { employee_id: string; created_at: string; within_radius: number };
@@ -39,25 +51,42 @@ export async function GET(req: NextRequest) {
     ? (searchParams.get("period") as string)
     : witaToday.slice(0, 7);
   const q = searchParams.get("q")?.trim() || "";
+  const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
+    ? Number(searchParams.get("pageSize"))
+    : 50;
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const offset = (page - 1) * pageSize;
 
   const where = q ? "AND (e.name LIKE ? OR e.nip LIKE ?)" : "";
   const params = q ? [period, `%${q}%`, `%${q}%`] : [period];
 
+  const countRow = await queryOne<{ total: number }>(
+    `SELECT COUNT(*) AS total
+     FROM tukin_calculations tc
+     JOIN employees e ON e.id = tc.employee_id
+     WHERE tc.period = ? ${where}`,
+    params,
+  );
+  const total = countRow?.total ?? 0;
+
   const rows = await query(
     `SELECT tc.employee_id, e.name, e.nip,
-            COALESCE(g.name, jc.name) AS category,
+            COALESCE(fp.name, g.name) AS position_name,
+            tc.job_class_amount, tc.initial_deduction,
             tc.base_amount, tc.deduction_percent, tc.deduction_amount, tc.net_amount, tc.calculated_at
      FROM tukin_calculations tc
      JOIN employees e ON e.id = tc.employee_id
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
      LEFT JOIN job_classes jc ON jc.id = p.job_class_id
      LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
+     LEFT JOIN functional_positions fp ON fp.id = p.functional_position_id
      WHERE tc.period = ? ${where}
-     ORDER BY e.name`,
-    params,
+     ORDER BY e.name
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset],
   );
 
-  return NextResponse.json({ period, calculations: rows });
+  return NextResponse.json({ period, calculations: rows, total, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {
@@ -74,7 +103,7 @@ export async function POST(req: NextRequest) {
   const { y, m, nextMonth, start, end } = monthRange(period);
 
   // Data global, sekali fetch (dipakai semua pegawai).
-  const [holidayRows, ramadhanPeriods, rules, leaveTypeRows, settingsRow, tierRows] = await Promise.all([
+  const [holidayRows, ramadhanPeriods, rules, leaveTypeRows, settingsRow, tierRows, salaryScaleRows] = await Promise.all([
     query<{ holiday_date: string }>("SELECT holiday_date FROM holidays WHERE holiday_date >= ? AND holiday_date < ?", [
       `${period}-01`,
       `${nextMonth}-01`,
@@ -84,21 +113,27 @@ export async function POST(req: NextRequest) {
     query<{ id: string; tukin_deduction_percent: string }>("SELECT id, tukin_deduction_percent FROM leave_types"),
     queryOne<{ alpa_deduction_percent: string }>("SELECT alpa_deduction_percent FROM tukin_settings WHERE id = 1"),
     query<{ max_minutes: number | null; percent: string }>("SELECT max_minutes, percent FROM tukin_deduction_tiers ORDER BY sort_order"),
+    query<{ rank_id: string; years: number; nominal: string }>("SELECT rank_id, years, nominal FROM salary_scales"),
   ]);
   const holidayDates = new Set(holidayRows.map((h) => h.holiday_date));
   const leaveDeductionPercentById = new Map(leaveTypeRows.map((r) => [r.id, Number(r.tukin_deduction_percent)]));
   const alpaDeductionPercent = Number(settingsRow?.alpa_deduction_percent ?? 3);
   const tiers: DeductionTier[] = tierRows.map((t) => ({ max_minutes: t.max_minutes, percent: Number(t.percent) }));
+  const salaryScales: SalaryScale[] = salaryScaleRows.map((s) => ({ rank_id: s.rank_id, years: s.years, nominal: Number(s.nominal) }));
 
-  // Semua pegawai aktif + resolusi nominal dasar (kelas jabatan ASN vs grade non-ASN).
+  // Semua pegawai aktif + resolusi nominal dasar (kelas jabatan ASN vs grade non-ASN) +
+  // data untuk potongan awal serdos (rank_id, service_years, is_serdos) + nama jabatan.
   const employees = await query<EmployeeRow>(
     `SELECT e.id, e.name, e.nip, p.uses_shift, p.employee_category,
+            p.rank_id, p.service_years, p.is_serdos,
             jc.name AS job_class_name, jc.base_amount AS job_class_amount,
-            g.name AS grade_name, g.base_amount AS grade_amount
+            g.name AS grade_name, g.base_amount AS grade_amount,
+            fp.name AS position_name
      FROM employees e
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
      LEFT JOIN job_classes jc ON jc.id = p.job_class_id
      LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
+     LEFT JOIN functional_positions fp ON fp.id = p.functional_position_id
      WHERE p.employment_status IS NULL OR p.employment_status = 'aktif'`,
   );
 
@@ -153,14 +188,28 @@ export async function POST(req: NextRequest) {
   for (let day = 1; day <= daysInMonth; day++) dateKeys.push(`${period}-${String(day).padStart(2, "0")}`);
 
   const skipped: { employeeId: string; name: string; reason: string }[] = [];
-  const results: { employeeId: string; baseAmount: number; deductionPercent: number; deductionAmount: number; netAmount: number }[] = [];
+  const results: {
+    employeeId: string;
+    jobClassAmount: number;
+    initialDeduction: number;
+    baseAmount: number;
+    deductionPercent: number;
+    deductionAmount: number;
+    netAmount: number;
+  }[] = [];
 
   for (const e of employees) {
-    const baseAmount = e.grade_amount !== null ? Number(e.grade_amount) : e.job_class_amount !== null ? Number(e.job_class_amount) : null;
-    if (baseAmount === null) {
+    const jobClassAmount = e.grade_amount !== null ? Number(e.grade_amount) : e.job_class_amount !== null ? Number(e.job_class_amount) : null;
+    if (jobClassAmount === null) {
       skipped.push({ employeeId: e.id, name: e.name, reason: "Belum ada nominal tukin (kelas jabatan/grade non-ASN)" });
       continue;
     }
+
+    // Potongan awal (Serdos): gaji pokok pegawai (golongan + masa kerja) dikurangkan dari
+    // nilai tukin kelas jabatan mentah, sebelum potongan % telat/cuti/alpa dihitung --
+    // persis alur laptukin.php cobakinerja. Cuma berlaku untuk dosen is_serdos=1.
+    const initialDeduction = e.is_serdos ? (resolveSalaryScaleAmount(e.rank_id, e.service_years, salaryScales) ?? 0) : 0;
+    const baseAmount = Math.max(jobClassAmount - initialDeduction, 0);
 
     const pings = (pingsByEmployee.get(e.id) ?? []).map((p) => ({
       created_at: dbDatetimeToIso(p.created_at)!,
@@ -210,19 +259,30 @@ export async function POST(req: NextRequest) {
     const deductionAmount = Math.round((baseAmount * deductionPercent) / 100);
     const netAmount = Math.max(baseAmount - deductionAmount, 0);
 
-    results.push({ employeeId: e.id, baseAmount, deductionPercent, deductionAmount, netAmount });
+    results.push({ employeeId: e.id, jobClassAmount, initialDeduction, baseAmount, deductionPercent, deductionAmount, netAmount });
   }
 
   // Upsert batch (bukan satu execute() per pegawai -- pola sama seperti migrasi cuti/lembur).
   const BATCH_SIZE = 200;
   for (let i = 0; i < results.length; i += BATCH_SIZE) {
     const batch = results.slice(i, i + BATCH_SIZE);
-    const placeholders = batch.map(() => "(?, ?, ?, ?, ?, ?)").join(", ");
-    const values = batch.flatMap((r) => [r.employeeId, period, r.baseAmount, r.deductionPercent, r.deductionAmount, r.netAmount]);
+    const placeholders = batch.map(() => "(?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
+    const values = batch.flatMap((r) => [
+      r.employeeId,
+      period,
+      r.jobClassAmount,
+      r.initialDeduction,
+      r.baseAmount,
+      r.deductionPercent,
+      r.deductionAmount,
+      r.netAmount,
+    ]);
     await execute(
-      `INSERT INTO tukin_calculations (employee_id, period, base_amount, deduction_percent, deduction_amount, net_amount)
+      `INSERT INTO tukin_calculations
+         (employee_id, period, job_class_amount, initial_deduction, base_amount, deduction_percent, deduction_amount, net_amount)
        VALUES ${placeholders}
        ON DUPLICATE KEY UPDATE
+         job_class_amount = VALUES(job_class_amount), initial_deduction = VALUES(initial_deduction),
          base_amount = VALUES(base_amount), deduction_percent = VALUES(deduction_percent),
          deduction_amount = VALUES(deduction_amount), net_amount = VALUES(net_amount),
          calculated_at = CURRENT_TIMESTAMP`,

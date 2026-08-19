@@ -24,6 +24,11 @@ export default function PotonganTukinPage() {
   const [editMax, setEditMax] = useState("");
   const [editPercent, setEditPercent] = useState("");
 
+  const [newMax, setNewMax] = useState("");
+  const [newPercent, setNewPercent] = useState("");
+  const [newError, setNewError] = useState("");
+  const [newSubmitting, setNewSubmitting] = useState(false);
+
   function loadSettings() {
     setAlpaLoading(true);
     return fetch("/api/admin/tukin-settings")
@@ -67,6 +72,37 @@ export default function PotonganTukinPage() {
       body: JSON.stringify({ max_minutes: editMax || null, percent: editPercent }),
     });
     setEditingId(null);
+    loadTiers();
+  }
+
+  async function addTier(e: React.FormEvent) {
+    e.preventDefault();
+    setNewError("");
+    setNewSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/master/tukin-tiers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ max_minutes: newMax || null, percent: newPercent }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNewError(data.error || "Gagal menyimpan.");
+        return;
+      }
+      setNewMax("");
+      setNewPercent("");
+      loadTiers();
+    } catch {
+      setNewError("Terjadi kesalahan jaringan.");
+    } finally {
+      setNewSubmitting(false);
+    }
+  }
+
+  async function deleteTier(id: number) {
+    if (!confirm("Hapus tier ini?")) return;
+    await fetch(`/api/admin/master/tukin-tiers/${id}`, { method: "DELETE" });
     loadTiers();
   }
 
@@ -115,6 +151,31 @@ export default function PotonganTukinPage() {
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
           Tier keterlambatan / pulang cepat
         </p>
+        <form onSubmit={addTier} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-4 flex items-end gap-3">
+          <label className="block">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Batas atas (menit)</span>
+            <input
+              type="number"
+              min="0"
+              placeholder="tanpa batas"
+              className={inputClass + " w-40"}
+              value={newMax}
+              onChange={(e) => setNewMax(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Persentase (%)</span>
+            <input type="number" min="0" step="0.25" className={inputClass + " w-32"} value={newPercent} onChange={(e) => setNewPercent(e.target.value)} required />
+          </label>
+          <button
+            type="submit"
+            disabled={newSubmitting}
+            className="rounded-full bg-cardGreen px-5 py-2.5 text-[13.5px] font-semibold text-canvas hover:bg-cardGreenDark transition-colors disabled:opacity-60"
+          >
+            {newSubmitting ? "Menyimpan…" : "Tambah tier"}
+          </button>
+          {newError && <p className="text-[13px] text-red-700">{newError}</p>}
+        </form>
         {tiersLoading ? (
           <p className="text-[14px] text-muted">Memuat…</p>
         ) : (
@@ -159,16 +220,24 @@ export default function PotonganTukinPage() {
                       <td className="px-4 py-2.5 text-muted">{t.max_minutes ?? "tanpa batas"}</td>
                       <td className="px-4 py-2.5 text-muted">{t.percent}%</td>
                       <td className="px-4 py-2.5">
-                        <button
-                          onClick={() => {
-                            setEditingId(t.id);
-                            setEditMax(t.max_minutes?.toString() ?? "");
-                            setEditPercent(t.percent);
-                          }}
-                          className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
-                        >
-                          Edit
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingId(t.id);
+                              setEditMax(t.max_minutes?.toString() ?? "");
+                              setEditPercent(t.percent);
+                            }}
+                            className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteTier(t.id)}
+                            className="rounded-full border border-red-700/30 px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-700/10"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ),

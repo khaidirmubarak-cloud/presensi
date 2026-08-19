@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Pagination from "../../../components/Pagination";
 
 type Participant = { employee_id: string; name: string; nip: string | null };
 type OvertimeEvent = {
@@ -16,14 +17,19 @@ function witaMonthNow(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Makassar" }).format(new Date()).slice(0, 7);
 }
 
+const PAGE_SIZES = [10, 50, 100];
+
 const inputClass =
   "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 export default function LemburPage() {
   const [events, setEvents] = useState<OvertimeEvent[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(witaMonthNow());
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [empQuery, setEmpQuery] = useState("");
@@ -40,15 +46,26 @@ export default function LemburPage() {
     const params = new URLSearchParams();
     params.set("month", month);
     if (search) params.set("q", search);
+    params.set("page", String(page));
+    params.set("pageSize", String(pageSize));
     return fetch(`/api/admin/lembur?${params.toString()}`)
       .then((r) => r.json())
-      .then((d) => setEvents(d.events ?? []))
+      .then((d) => {
+        setEvents(d.events ?? []);
+        setTotal(d.total ?? 0);
+      })
       .finally(() => setLoading(false));
-  }, [month, search]);
+  }, [month, search, page, pageSize]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [month, search]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
     const selectedIds = new Set(selectedEmployees.map((e) => e.id));
@@ -249,7 +266,22 @@ export default function LemburPage() {
           onChange={(e) => setSearch(e.target.value)}
           className={inputClass + " w-56"}
         />
-        <span className="text-[12.5px] text-muted">{events.length} data</span>
+        <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
+          Tampilkan
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </label>
+        <span className="text-[12.5px] text-muted">{total} data</span>
       </div>
 
       {loading ? (
@@ -257,6 +289,7 @@ export default function LemburPage() {
       ) : events.length === 0 ? (
         <p className="text-[14px] text-muted">Belum ada data lembur bulan ini.</p>
       ) : (
+        <>
         <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
@@ -298,6 +331,13 @@ export default function LemburPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
+        </>
       )}
     </div>
   );

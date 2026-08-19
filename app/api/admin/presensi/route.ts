@@ -5,6 +5,8 @@ import { computeDailyStatus, type WorkHourRule, type RamadhanRange } from "../..
 
 export const dynamic = "force-dynamic";
 
+const ALLOWED_PAGE_SIZES = [10, 50, 100];
+
 type EmployeeRow = {
   id: string;
   name: string;
@@ -37,14 +39,23 @@ export async function GET(req: NextRequest) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: "Parameter date tidak valid." }, { status: 400 });
   }
+  const q = searchParams.get("q")?.trim() || "";
+  const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
+    ? Number(searchParams.get("pageSize"))
+    : 50;
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+
+  const where = q ? "AND (e.name LIKE ? OR e.nip LIKE ?)" : "";
+  const empParams = q ? [`%${q}%`, `%${q}%`] : [];
 
   const employees = await query<EmployeeRow>(
     `SELECT e.id, e.name, e.nip, u.name AS unit_name, p.uses_shift
      FROM employees e
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
      LEFT JOIN units u ON u.id = p.unit_id
-     WHERE p.employment_status IS NULL OR p.employment_status = 'aktif'
+     WHERE (p.employment_status IS NULL OR p.employment_status = 'aktif') ${where}
      ORDER BY e.name`,
+    empParams,
   );
 
   // Batas hari kalender WITA (+08:00), pola sama seperti app/api/attendance/route.ts di
@@ -131,5 +142,17 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ date, employees: result });
+  // Ringkasan status dihitung dari SEMUA pegawai (setelah filter search, sebelum
+  // dipotong halaman) -- supaya badge ringkasan tetap akurat walau tabel di bawahnya
+  // cuma menampilkan satu halaman.
+  const summary = result.reduce<Record<string, number>>((acc, r) => {
+    acc[r.status] = (acc[r.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const total = result.length;
+  const offset = (page - 1) * pageSize;
+  const paged = result.slice(offset, offset + pageSize);
+
+  return NextResponse.json({ date, employees: paged, total, page, pageSize, summary });
 }

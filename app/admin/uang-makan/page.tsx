@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Pagination from "../../../components/Pagination";
 
 type Calculation = {
   employee_id: string;
@@ -22,6 +23,8 @@ function rupiah(value: string | number): string {
   return Number(value).toLocaleString("id-ID");
 }
 
+const PAGE_SIZES = [10, 50, 100];
+
 const inputClass =
   "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
@@ -29,24 +32,38 @@ export default function UangMakanPage() {
   const [period, setPeriod] = useState(witaMonthNow());
   const [search, setSearch] = useState("");
   const [calculations, setCalculations] = useState<Calculation[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [resultMsg, setResultMsg] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const load = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     params.set("period", period);
     if (search) params.set("q", search);
+    params.set("page", String(page));
+    params.set("pageSize", String(pageSize));
     return fetch(`/api/admin/uang-makan?${params.toString()}`)
       .then((r) => r.json())
-      .then((d) => setCalculations(d.calculations ?? []))
+      .then((d) => {
+        setCalculations(d.calculations ?? []);
+        setTotal(d.total ?? 0);
+      })
       .finally(() => setLoading(false));
-  }, [period, search]);
+  }, [period, search, page, pageSize]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [period, search]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   async function handleHitung() {
     setCalculating(true);
@@ -104,6 +121,21 @@ export default function UangMakanPage() {
           onChange={(e) => setSearch(e.target.value)}
           className={inputClass + " w-56"}
         />
+        <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
+          Tampilkan
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </label>
       </div>
       {resultMsg && <p className="mb-4 text-[13px] text-ink">{resultMsg}</p>}
 
@@ -116,7 +148,7 @@ export default function UangMakanPage() {
       ) : (
         <>
           <p className="mb-3 text-[12.5px] text-muted">
-            {calculations.length} pegawai -- total diterima Rp{rupiah(totalNet)}
+            {total} pegawai -- total diterima (halaman ini) Rp{rupiah(totalNet)}
           </p>
           <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
             <table className="w-full text-[13.5px]">
@@ -124,7 +156,7 @@ export default function UangMakanPage() {
                 <tr>
                   <th className="text-left px-4 py-2.5 font-semibold">Pegawai</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Golongan</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">Hari Makan</th>
+                  <th className="text-right px-4 py-2.5 font-semibold">Hadir (hari)</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Nominal/Hari</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Kotor</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Pajak</th>
@@ -149,6 +181,12 @@ export default function UangMakanPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          />
         </>
       )}
     </div>

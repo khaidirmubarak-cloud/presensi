@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, execute } from "../../../../lib/db";
+import { query, queryOne, execute } from "../../../../lib/db";
 import { getSession } from "../../../../lib/auth";
 
 export const dynamic = "force-dynamic";
+
+const ALLOWED_PAGE_SIZES = [10, 50, 100];
 
 type OvertimeEventRow = {
   id: number;
@@ -49,12 +51,25 @@ export async function GET(req: NextRequest) {
   }
   const where = `WHERE ${conditions.join(" AND ")}`;
 
+  const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
+    ? Number(searchParams.get("pageSize"))
+    : 50;
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const offset = (page - 1) * pageSize;
+
+  const countRow = await queryOne<{ total: number }>(
+    `SELECT COUNT(*) AS total FROM overtime_events oe ${where}`,
+    params,
+  );
+  const total = countRow?.total ?? 0;
+
   const events = await query<OvertimeEventRow>(
     `SELECT oe.id, oe.event_date, oe.hours, oe.purpose
      FROM overtime_events oe
      ${where}
-     ORDER BY oe.event_date DESC, oe.id DESC`,
-    params,
+     ORDER BY oe.event_date DESC, oe.id DESC
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset],
   );
 
   const eventIds = events.map((e) => e.id);
@@ -82,7 +97,7 @@ export async function GET(req: NextRequest) {
     participants: participantsByEvent.get(e.id) ?? [],
   }));
 
-  return NextResponse.json({ events: result, month });
+  return NextResponse.json({ events: result, month, total, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {

@@ -10,26 +10,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (session.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json().catch(() => null);
-  const maxMinutes =
-    body?.max_minutes === undefined || body?.max_minutes === null || body?.max_minutes === ""
-      ? null
-      : Number(body.max_minutes);
-  const percent = Number(body?.percent);
+  const years = Number(body?.years);
+  const nominal = Number(body?.nominal);
 
-  if (!Number.isFinite(percent) || percent < 0) {
-    return NextResponse.json({ error: "Persentase tidak valid." }, { status: 400 });
+  if (!Number.isFinite(years) || years < 0) {
+    return NextResponse.json({ error: "Masa kerja (tahun) tidak valid." }, { status: 400 });
   }
-  if (maxMinutes !== null && (!Number.isFinite(maxMinutes) || maxMinutes < 0)) {
-    return NextResponse.json({ error: "Batas menit tidak valid." }, { status: 400 });
+  if (!Number.isFinite(nominal) || nominal < 0) {
+    return NextResponse.json({ error: "Nominal tidak valid." }, { status: 400 });
   }
 
-  const result = await execute("UPDATE tukin_deduction_tiers SET max_minutes = ?, percent = ? WHERE id = ?", [
-    maxMinutes,
-    percent,
+  const result = await execute("UPDATE salary_scales SET years = ?, nominal = ? WHERE id = ?", [
+    years,
+    nominal,
     params.id,
   ]);
   if (result.affectedRows === 0) {
-    return NextResponse.json({ error: "Tier tidak ditemukan." }, { status: 404 });
+    return NextResponse.json({ error: "Data gaji pokok tidak ditemukan." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }
@@ -39,9 +36,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const result = await execute("DELETE FROM tukin_deduction_tiers WHERE id = ?", [params.id]);
+  const result = await execute("DELETE FROM salary_scales WHERE id = ?", [params.id]);
   if (result.affectedRows === 0) {
-    return NextResponse.json({ error: "Tier tidak ditemukan." }, { status: 404 });
+    return NextResponse.json({ error: "Data gaji pokok tidak ditemukan." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

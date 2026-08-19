@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Pagination from "../../../components/Pagination";
 
 type PresensiRow = {
   employeeId: string;
@@ -55,34 +56,53 @@ function todayIso(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Makassar" }).format(new Date());
 }
 
+const PAGE_SIZES = [10, 50, 100];
+
 export default function PresensiPage() {
   const [date, setDate] = useState(todayIso());
   const [rows, setRows] = useState<PresensiRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const load = useCallback(() => {
     setLoading(true);
-    return fetch(`/api/admin/presensi?date=${date}`)
+    const params = new URLSearchParams();
+    params.set("date", date);
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    params.set("page", String(page));
+    params.set("pageSize", String(pageSize));
+    return fetch(`/api/admin/presensi?${params.toString()}`)
       .then((r) => r.json())
-      .then((d) => setRows(d.employees ?? []))
+      .then((d) => {
+        setRows(d.employees ?? []);
+        setTotal(d.total ?? 0);
+        setSummary(d.summary ?? {});
+      })
       .finally(() => setLoading(false));
-  }, [date]);
+  }, [date, debouncedSearch, page, pageSize]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const filtered = rows.filter((r) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return r.name.toLowerCase().includes(q) || (r.nip ?? "").includes(q);
-  });
+  useEffect(() => {
+    setPage(1);
+  }, [date]);
 
-  const summary = rows.reduce<Record<string, number>>((acc, r) => {
-    acc[r.status] = (acc[r.status] ?? 0) + 1;
-    return acc;
-  }, {});
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
@@ -113,6 +133,21 @@ export default function PresensiPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink w-56 focus:outline-none focus:ring-2 focus:ring-pine/30"
         />
+        <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
+          Tampilkan
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {!loading && rows.length > 0 && (
@@ -129,9 +164,10 @@ export default function PresensiPage() {
 
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
-      ) : filtered.length === 0 ? (
+      ) : rows.length === 0 ? (
         <p className="text-[14px] text-muted">Tidak ada data.</p>
       ) : (
+        <>
         <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
@@ -147,7 +183,7 @@ export default function PresensiPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {rows.map((r) => (
                 <tr key={r.employeeId} className="border-t border-cardGreenDark/10">
                   <td className="px-4 py-2.5 text-ink">{r.name}</td>
                   <td className="px-4 py-2.5 text-muted">{r.nip ?? "-"}</td>
@@ -175,6 +211,13 @@ export default function PresensiPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
+        </>
       )}
     </div>
   );

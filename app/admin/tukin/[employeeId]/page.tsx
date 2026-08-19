@@ -19,9 +19,20 @@ type DayRow = {
   potonganRp: number | null;
 };
 
-type Employee = { id: string; name: string; nip: string | null; category: string | null; baseAmount: number | null };
+type Employee = {
+  id: string;
+  name: string;
+  nip: string | null;
+  positionName: string | null;
+  jobClassAmount: number | null;
+  initialDeduction: number;
+  baseAmount: number | null;
+};
 
 type Summary = {
+  jobClassAmount: number | null;
+  initialDeduction: number;
+  tunjanganKinerja: number | null;
   telatTotal: number;
   pulangCepatTotal: number;
   alpaTotal: number;
@@ -84,14 +95,16 @@ export default function TukinPegawaiPage() {
     <div className="mx-auto max-w-5xl px-6 py-14">
       <header className="mb-8">
         <Link href="/admin/tukin" className="text-[13px] font-semibold text-pine hover:underline">
-          ← Kembali ke Tukin
+          ← Kembali ke Tunjangan Kinerja
         </Link>
         <h1 className="font-display text-[28px] leading-tight text-ink mt-2">{employee?.name ?? "Memuat…"}</h1>
         {employee && (
           <p className="mt-1 text-[13px] text-muted">
             {employee.nip ?? "-"}
-            {employee.category ? ` · ${employee.category}` : ""}
-            {employee.baseAmount !== null ? ` · Nominal dasar Rp${rupiah(employee.baseAmount)}` : " · Belum ada nominal tukin"}
+            {employee.positionName ? ` · ${employee.positionName}` : ""}
+            {employee.jobClassAmount !== null
+              ? ` · Nilai Tunjangan Kinerja Rp${rupiah(employee.jobClassAmount)}`
+              : " · Belum ada nominal tunjangan kinerja"}
           </p>
         )}
       </header>
@@ -113,6 +126,24 @@ export default function TukinPegawaiPage() {
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-3">Ringkasan sebulan</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[13px] mb-3">
             <div>
+              <p className="text-muted">Nama Jabatan</p>
+              <p className="text-ink font-semibold">{employee?.positionName ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-muted">Nilai Tunjangan Kinerja</p>
+              <p className="text-ink font-semibold">Rp{rupiah(summary.jobClassAmount)}</p>
+            </div>
+            <div>
+              <p className="text-muted">Potongan Awal</p>
+              <p className="text-ink font-semibold">Rp{rupiah(summary.initialDeduction)}</p>
+            </div>
+            <div>
+              <p className="text-muted">Tunjangan Kinerja</p>
+              <p className="text-ink font-semibold">Rp{rupiah(summary.tunjanganKinerja)}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[13px] mb-3">
+            <div>
               <p className="text-muted">Total dari Terlambat</p>
               <p className="text-ink font-semibold">{summary.telatTotal}%</p>
             </div>
@@ -131,10 +162,10 @@ export default function TukinPegawaiPage() {
           </div>
           <div className="border-t border-cardGreenDark/10 pt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-[13px]">
             <span>
-              Potongan resmi: <strong className="text-ink">{summary.officialPercent}%</strong> (Rp{rupiah(summary.officialDeductionAmount)})
+              Total potongan: <strong className="text-ink">{summary.officialPercent}%</strong> (Rp{rupiah(summary.officialDeductionAmount)})
             </span>
             <span>
-              Diterima: <strong className="text-ink">Rp{rupiah(summary.officialNetAmount)}</strong>
+              Tunjangan Kinerja Diterima: <strong className="text-ink">Rp{rupiah(summary.officialNetAmount)}</strong>
             </span>
           </div>
           {summary.overrideReason && (

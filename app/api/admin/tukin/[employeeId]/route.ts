@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne, dbDatetimeToIso, toDbDatetime } from "../../../../../lib/db";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange } from "../../../../../lib/attendance-status";
-import { computeDailyDeduction, computeMonthlyDeductionPercent, type DeductionTier, type StudyAssignmentType } from "../../../../../lib/tukin";
+import {
+  computeDailyDeduction,
+  computeMonthlyDeductionPercent,
+  resolveSalaryScaleAmount,
+  type DeductionTier,
+  type StudyAssignmentType,
+  type SalaryScale,
+} from "../../../../../lib/tukin";
 import { DAY_NAMES_ID } from "../../../../../lib/calendar";
 import { getSession } from "../../../../../lib/auth";
 
@@ -29,18 +36,25 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
     nip: string | null;
     uses_shift: number | null;
     employee_category: string | null;
+    rank_id: string | null;
+    service_years: number | null;
+    is_serdos: number | null;
     job_class_name: string | null;
     job_class_amount: string | null;
     grade_name: string | null;
     grade_amount: string | null;
+    position_name: string | null;
   }>(
     `SELECT e.id, e.name, e.nip, p.uses_shift, p.employee_category,
+            p.rank_id, p.service_years, p.is_serdos,
             jc.name AS job_class_name, jc.base_amount AS job_class_amount,
-            g.name AS grade_name, g.base_amount AS grade_amount
+            g.name AS grade_name, g.base_amount AS grade_amount,
+            fp.name AS position_name
      FROM employees e
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
      LEFT JOIN job_classes jc ON jc.id = p.job_class_id
      LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
+     LEFT JOIN functional_positions fp ON fp.id = p.functional_position_id
      WHERE e.id = ?`,
     [params.employeeId],
   );
@@ -94,8 +108,19 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
   const studyAssignmentType: StudyAssignmentType = studyRow?.type ?? null;
   const isExempt = employee.employee_category === "DOKTER" || employee.employee_category === "KLINIK";
 
-  const baseAmount =
+  const jobClassAmount =
     employee.grade_amount !== null ? Number(employee.grade_amount) : employee.job_class_amount !== null ? Number(employee.job_class_amount) : null;
+
+  let initialDeduction = 0;
+  let baseAmount: number | null = jobClassAmount;
+  if (jobClassAmount !== null && employee.is_serdos) {
+    const salaryScaleRows = await query<{ rank_id: string; years: number; nominal: string }>(
+      "SELECT rank_id, years, nominal FROM salary_scales",
+    );
+    const salaryScales: SalaryScale[] = salaryScaleRows.map((s) => ({ rank_id: s.rank_id, years: s.years, nominal: Number(s.nominal) }));
+    initialDeduction = resolveSalaryScaleAmount(employee.rank_id, employee.service_years, salaryScales) ?? 0;
+    baseAmount = Math.max(jobClassAmount - initialDeduction, 0);
+  }
 
   const pingsByDate = new Map<string, { created_at: string; within_radius: number }[]>();
   for (const r of pingRows) {
@@ -184,12 +209,17 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
       id: employee.id,
       name: employee.name,
       nip: employee.nip,
-      category: employee.grade_name ?? employee.job_class_name,
+      positionName: employee.position_name ?? employee.grade_name ?? employee.job_class_name,
+      jobClassAmount,
+      initialDeduction,
       baseAmount,
     },
     period,
     days,
     summary: {
+      jobClassAmount,
+      initialDeduction,
+      tunjanganKinerja: baseAmount,
       telatTotal,
       pulangCepatTotal,
       alpaTotal,

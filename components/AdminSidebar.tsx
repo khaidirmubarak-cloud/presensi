@@ -12,7 +12,7 @@ const PRIMARY: NavItem[] = [
   { href: "/admin/presensi", label: "Presensi" },
   { href: "/admin/ketidakhadiran", label: "Ketidakhadiran" },
   { href: "/admin/lembur", label: "Lembur" },
-  { href: "/admin/tukin", label: "Tukin" },
+  { href: "/admin/tukin", label: "Tunjangan Kinerja" },
   { href: "/admin/uang-makan", label: "Uang Makan" },
 ];
 
@@ -25,6 +25,7 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/master/jabatan", label: "Jabatan" },
       { href: "/admin/master/tukin-nonpns-grade", label: "Grade Non-ASN" },
       { href: "/admin/master/tugas-belajar", label: "Tugas Belajar" },
+      { href: "/admin/master/gaji-pokok", label: "Gaji Pokok" },
     ],
   },
   {
