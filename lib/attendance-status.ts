@@ -62,6 +62,19 @@ export type AttendanceStatus =
 
 export type AttendanceSource = "fingerprint" | "wa_ping" | null;
 
+// Label Indonesia dipakai bareng oleh UI (app/admin/presensi/page.tsx) dan export PDF/Excel
+// (lib/presensi-export.ts) -- satu sumber supaya tidak ada dua daftar label yang bisa
+// berbeda diam-diam.
+export const STATUS_LABEL_ID: Record<AttendanceStatus, string> = {
+  libur: "Libur",
+  shift: "Shift",
+  cuti: "Cuti",
+  belum_ada_data: "Belum Ada Data",
+  hadir: "Hadir",
+  terlambat: "Terlambat",
+  pulang_cepat: "Pulang Cepat",
+};
+
 export type DailyStatusResult = {
   status: AttendanceStatus;
   jamMasuk: string | null;

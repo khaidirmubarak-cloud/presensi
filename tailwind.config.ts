@@ -1,24 +1,28 @@
 import type { Config } from "tailwindcss";
 
 // Palet identik dengan dashboard-kinerja supaya kedua aplikasi (sama-sama bagian dari
-// "sistem kepegawaian" yang memakai satu database) terasa satu keluarga visual.
+// "sistem kepegawaian" yang memakai satu database) terasa satu keluarga visual. Nilai
+// warna sendiri didefinisikan sebagai CSS variable di globals.css (light & dark, lewat
+// [data-theme="dark"]) -- di sini cuma referensi variable-nya supaya modifier opacity
+// Tailwind (mis. border-cardGreenDark/20) tetap jalan.
 export default {
+  darkMode: ["selector", '[data-theme="dark"]'],
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        ink: "#1C2521",
-        canvas: "#F6F4EE",
-        panel: "#FFFFFF",
-        pine: "#2F4A3D",
-        pineLight: "#E7EEE8",
-        moss: "#5C8A6E",
-        clay: "#B5651D",
-        line: "#DCD7C9",
-        muted: "#6B7268",
-        cardGreen: "#178349",
-        cardGreenDark: "#0F6337",
-        pill: "#BFE3CE",
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        canvas: "rgb(var(--c-canvas) / <alpha-value>)",
+        panel: "rgb(var(--c-panel) / <alpha-value>)",
+        pine: "rgb(var(--c-pine) / <alpha-value>)",
+        pineLight: "rgb(var(--c-pineLight) / <alpha-value>)",
+        moss: "rgb(var(--c-moss) / <alpha-value>)",
+        clay: "rgb(var(--c-clay) / <alpha-value>)",
+        line: "rgb(var(--c-line) / <alpha-value>)",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
+        cardGreen: "rgb(var(--c-cardGreen) / <alpha-value>)",
+        cardGreenDark: "rgb(var(--c-cardGreenDark) / <alpha-value>)",
+        pill: "rgb(var(--c-pill) / <alpha-value>)",
       },
       fontFamily: {
         display: ["'Plus Jakarta Sans'", "sans-serif"],

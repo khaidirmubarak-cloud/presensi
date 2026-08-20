@@ -33,17 +33,27 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() || "";
+  const category = searchParams.get("category")?.trim() || "";
   const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
     ? Number(searchParams.get("pageSize"))
     : 50;
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const offset = (page - 1) * pageSize;
 
-  const where = q ? "WHERE e.name LIKE ? OR e.nip LIKE ?" : "";
-  const whereParams = q ? [`%${q}%`, `%${q}%`] : [];
+  const conditions: string[] = [];
+  const whereParams: string[] = [];
+  if (q) {
+    conditions.push("(e.name LIKE ? OR e.nip LIKE ?)");
+    whereParams.push(`%${q}%`, `%${q}%`);
+  }
+  if (category) {
+    conditions.push("p.employee_category = ?");
+    whereParams.push(category);
+  }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const countRow = await queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM employees e ${where}`,
+    `SELECT COUNT(*) AS total FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id ${where}`,
     whereParams,
   );
   const total = countRow?.total ?? 0;
@@ -65,7 +75,12 @@ export async function GET(req: NextRequest) {
     [...whereParams, pageSize, offset],
   );
 
-  return NextResponse.json({ pegawai, total, page, pageSize });
+  const categoryRows = await query<{ employee_category: string }>(
+    "SELECT DISTINCT employee_category FROM employee_profiles WHERE employee_category IS NOT NULL AND employee_category <> '' ORDER BY employee_category",
+  );
+  const categories = categoryRows.map((r) => r.employee_category);
+
+  return NextResponse.json({ pegawai, total, page, pageSize, categories });
 }
 
 // Create dasar (nama+NIP saja) -- sama seperti dashboard-kinerja, onboarding penuh

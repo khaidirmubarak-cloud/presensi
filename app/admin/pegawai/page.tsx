@@ -31,6 +31,8 @@ export default function AdminPegawaiPage() {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -46,6 +48,7 @@ export default function AdminPegawaiPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
+    if (category) params.set("category", category);
     params.set("page", String(page));
     params.set("pageSize", String(pageSize));
 
@@ -54,9 +57,10 @@ export default function AdminPegawaiPage() {
       .then((d) => {
         setPegawai(d.pegawai ?? []);
         setTotal(d.total ?? 0);
+        setCategories(d.categories ?? []);
       })
       .finally(() => setLoading(false));
-  }, [debouncedSearch, page, pageSize]);
+  }, [debouncedSearch, category, page, pageSize]);
 
   useEffect(() => {
     loadPegawai();
@@ -159,6 +163,21 @@ export default function AdminPegawaiPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink w-56 focus:outline-none focus:ring-2 focus:ring-pine/30"
             />
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+            >
+              <option value="">Semua kategori</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
             <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
               Tampilkan
               <select
@@ -183,7 +202,7 @@ export default function AdminPegawaiPage() {
           <p className="text-[14px] text-muted">Memuat…</p>
         ) : pegawai.length === 0 ? (
           <p className="text-[14px] text-muted">
-            {debouncedSearch ? "Tidak ada pegawai yang cocok." : "Belum ada pegawai."}
+            {debouncedSearch || category ? "Tidak ada pegawai yang cocok." : "Belum ada pegawai."}
           </p>
         ) : (
           <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
@@ -223,7 +242,7 @@ export default function AdminPegawaiPage() {
                         href={`/admin/pegawai/${p.id}`}
                         className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors"
                       >
-                        Lengkapi data
+                        Detail
                       </Link>
                     </td>
                   </tr>

@@ -45,6 +45,8 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
     grade_amount: string | null;
     position_name: string | null;
   }>(
+    // Kelas jabatan diutamakan dari jabatan fungsional (fp.job_class_id) -- lihat catatan
+    // di app/api/admin/tukin/route.ts.
     `SELECT e.id, e.name, e.nip, p.uses_shift, p.employee_category,
             p.rank_id, p.service_years, p.is_serdos,
             jc.name AS job_class_name, jc.base_amount AS job_class_amount,
@@ -52,9 +54,9 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
             fp.name AS position_name
      FROM employees e
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
-     LEFT JOIN job_classes jc ON jc.id = p.job_class_id
-     LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
      LEFT JOIN functional_positions fp ON fp.id = p.functional_position_id
+     LEFT JOIN job_classes jc ON jc.id = COALESCE(fp.job_class_id, p.job_class_id)
+     LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
      WHERE e.id = ?`,
     [params.employeeId],
   );

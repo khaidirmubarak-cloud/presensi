@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "../../components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,7 +40,10 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="font-display text-[28px] leading-tight text-ink mb-1">Login</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="font-display text-[28px] leading-tight text-ink mb-1">Login</h1>
+        <ThemeToggle />
+      </div>
       <p className="text-[14px] text-muted mb-8">
         Masuk ke sistem kepegawaian & presensi. Pakai nomor WhatsApp dan password yang sama
         seperti di Laporan Kinerja Harian.

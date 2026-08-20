@@ -6,6 +6,9 @@ const nextConfig = {
   // "useContext on null" yang muncul kalau workernya dinolkan sama sekali.
   experimental: {
     cpus: 2,
+    // pdfkit/exceljs memuat aset (font .afm, dll) lewat fs relatif ke paketnya sendiri
+    // saat runtime -- kalau di-bundle webpack biasa gampang patah di route handler.
+    serverComponentsExternalPackages: ["pdfkit", "exceljs"],
   },
 };
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import ThemeToggle from "./ThemeToggle";
 
 type NavItem = { href: string; label: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -137,14 +138,15 @@ function SidebarContent({ pathname, onNavigate }: { pathname: string | null; onN
         })}
       </nav>
 
-      <div className="border-t border-line px-3 py-4">
+      <div className="flex items-center gap-2 border-t border-line px-3 py-4">
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full rounded-lg border border-cardGreenDark/30 px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:bg-cardGreenDark/10"
+          className="flex-1 rounded-lg border border-cardGreenDark/30 px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:bg-cardGreenDark/10"
         >
           Keluar
         </button>
+        <ThemeToggle />
       </div>
     </div>
   );

@@ -124,6 +124,11 @@ export async function POST(req: NextRequest) {
   // Semua pegawai aktif + resolusi nominal dasar (kelas jabatan ASN vs grade non-ASN) +
   // data untuk potongan awal serdos (rank_id, service_years, is_serdos) + nama jabatan.
   const employees = await query<EmployeeRow>(
+    // Kelas jabatan diutamakan dari jabatan fungsional (fp.job_class_id) kalau pegawai
+    // punya jabatan fungsional -- employee_profiles.job_class_id sendiri sering basi
+    // (cobakinerja: user.id_kelas tidak selalu disinkronkan ulang saat jabatan fungsional
+    // berubah, ditemukan lewat laporan user: 75 dari 396 pegawai berjabatan fungsional
+    // punya id_kelas yang tidak cocok dengan fungsional.id_kelas resminya).
     `SELECT e.id, e.name, e.nip, p.uses_shift, p.employee_category,
             p.rank_id, p.service_years, p.is_serdos,
             jc.name AS job_class_name, jc.base_amount AS job_class_amount,
@@ -131,9 +136,9 @@ export async function POST(req: NextRequest) {
             fp.name AS position_name
      FROM employees e
      LEFT JOIN employee_profiles p ON p.employee_id = e.id
-     LEFT JOIN job_classes jc ON jc.id = p.job_class_id
-     LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
      LEFT JOIN functional_positions fp ON fp.id = p.functional_position_id
+     LEFT JOIN job_classes jc ON jc.id = COALESCE(fp.job_class_id, p.job_class_id)
+     LEFT JOIN tukin_nonpns_grades g ON g.id = p.tukin_nonpns_grade_id
      WHERE p.employment_status IS NULL OR p.employment_status = 'aktif'`,
   );
 

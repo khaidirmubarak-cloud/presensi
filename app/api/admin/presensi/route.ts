@@ -40,13 +40,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Parameter date tidak valid." }, { status: 400 });
   }
   const q = searchParams.get("q")?.trim() || "";
+  const category = searchParams.get("category")?.trim() || "";
+  const unitId = searchParams.get("unitId")?.trim() || "";
   const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
     ? Number(searchParams.get("pageSize"))
     : 50;
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
 
-  const where = q ? "AND (e.name LIKE ? OR e.nip LIKE ?)" : "";
-  const empParams = q ? [`%${q}%`, `%${q}%`] : [];
+  const conditions: string[] = [];
+  const empParams: string[] = [];
+  if (q) {
+    conditions.push("(e.name LIKE ? OR e.nip LIKE ?)");
+    empParams.push(`%${q}%`, `%${q}%`);
+  }
+  if (category) {
+    conditions.push("p.employee_category = ?");
+    empParams.push(category);
+  }
+  if (unitId) {
+    conditions.push("p.unit_id = ?");
+    empParams.push(unitId);
+  }
+  const where = conditions.length > 0 ? `AND ${conditions.join(" AND ")}` : "";
 
   const employees = await query<EmployeeRow>(
     `SELECT e.id, e.name, e.nip, u.name AS unit_name, p.uses_shift
@@ -154,5 +169,21 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * pageSize;
   const paged = result.slice(offset, offset + pageSize);
 
-  return NextResponse.json({ date, employees: paged, total, page, pageSize, summary });
+  const [categoryRows, unitRows] = await Promise.all([
+    query<{ employee_category: string }>(
+      "SELECT DISTINCT employee_category FROM employee_profiles WHERE employee_category IS NOT NULL AND employee_category <> '' ORDER BY employee_category",
+    ),
+    query<{ id: string; name: string }>("SELECT id, name FROM units ORDER BY name"),
+  ]);
+
+  return NextResponse.json({
+    date,
+    employees: paged,
+    total,
+    page,
+    pageSize,
+    summary,
+    categories: categoryRows.map((r) => r.employee_category),
+    units: unitRows,
+  });
 }

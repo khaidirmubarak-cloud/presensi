@@ -63,11 +63,21 @@ export default function PresensiPage() {
   const [rows, setRows] = useState<PresensiRow[]>([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState<Record<string, number>>({});
+  const [categories, setCategories] = useState<string[]>([]);
+  const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [unitId, setUnitId] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printMonth, setPrintMonth] = useState(todayIso().slice(0, 7));
+  const [printing, setPrinting] = useState<"pdf" | "excel" | null>(null);
+  const [printError, setPrintError] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -82,6 +92,8 @@ export default function PresensiPage() {
     const params = new URLSearchParams();
     params.set("date", date);
     if (debouncedSearch) params.set("q", debouncedSearch);
+    if (category) params.set("category", category);
+    if (unitId) params.set("unitId", unitId);
     params.set("page", String(page));
     params.set("pageSize", String(pageSize));
     return fetch(`/api/admin/presensi?${params.toString()}`)
@@ -90,9 +102,11 @@ export default function PresensiPage() {
         setRows(d.employees ?? []);
         setTotal(d.total ?? 0);
         setSummary(d.summary ?? {});
+        setCategories(d.categories ?? []);
+        setUnits(d.units ?? []);
       })
       .finally(() => setLoading(false));
-  }, [date, debouncedSearch, page, pageSize]);
+  }, [date, debouncedSearch, category, unitId, page, pageSize]);
 
   useEffect(() => {
     load();
@@ -103,6 +117,66 @@ export default function PresensiPage() {
   }, [date]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allOnPageSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.employeeId));
+
+  function toggleAllOnPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) {
+        for (const r of rows) next.delete(r.employeeId);
+      } else {
+        for (const r of rows) next.add(r.employeeId);
+      }
+      return next;
+    });
+  }
+
+  async function handlePrint(format: "pdf" | "excel") {
+    setPrintError("");
+    setPrinting(format);
+    try {
+      const res = await fetch("/api/admin/presensi/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          month: printMonth,
+          format,
+          employeeIds: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+          q: debouncedSearch || undefined,
+          category: category || undefined,
+          unitId: unitId || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setPrintError(data?.error || "Gagal membuat file cetak.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `presensi_${printMonth}.${format === "pdf" ? "pdf" : "xlsx"}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setPrintError("Terjadi kesalahan jaringan.");
+    } finally {
+      setPrinting(null);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
@@ -133,6 +207,32 @@ export default function PresensiPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink w-56 focus:outline-none focus:ring-2 focus:ring-pine/30"
         />
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPage(1);
+          }}
+          className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+        >
+          <option value="">Semua kategori</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          value={unitId}
+          onChange={(e) => {
+            setUnitId(e.target.value);
+            setPage(1);
+          }}
+          className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+        >
+          <option value="">Semua unit</option>
+          {units.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
         <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
           Tampilkan
           <select
@@ -148,7 +248,48 @@ export default function PresensiPage() {
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          onClick={() => setPrintOpen((v) => !v)}
+          className="rounded-full bg-cardGreen px-5 py-2.5 text-[13.5px] font-semibold text-canvas hover:bg-cardGreenDark transition-colors"
+        >
+          Cetak
+        </button>
       </div>
+
+      {printOpen && (
+        <div className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6 flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Bulan</span>
+            <input
+              type="month"
+              value={printMonth}
+              onChange={(e) => setPrintMonth(e.target.value)}
+              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={printing !== null}
+            onClick={() => handlePrint("pdf")}
+            className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          >
+            {printing === "pdf" ? "Membuat PDF…" : "Unduh PDF"}
+          </button>
+          <button
+            type="button"
+            disabled={printing !== null}
+            onClick={() => handlePrint("excel")}
+            className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          >
+            {printing === "excel" ? "Membuat Excel…" : "Unduh Excel"}
+          </button>
+          <p className="text-[12.5px] text-muted">
+            {selectedIds.size > 0 ? `${selectedIds.size} pegawai dipilih` : "Semua pegawai sesuai filter saat ini"}
+          </p>
+          {printError && <p className="text-[13px] text-red-700 w-full">{printError}</p>}
+        </div>
+      )}
 
       {!loading && rows.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
@@ -172,6 +313,9 @@ export default function PresensiPage() {
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
+                <th className="px-4 py-2.5">
+                  <input type="checkbox" checked={allOnPageSelected} onChange={toggleAllOnPage} className="h-4 w-4" />
+                </th>
                 <th className="text-left px-4 py-2.5 font-semibold">Nama</th>
                 <th className="text-left px-4 py-2.5 font-semibold">NIP</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Unit</th>
@@ -185,6 +329,14 @@ export default function PresensiPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.employeeId} className="border-t border-cardGreenDark/10">
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r.employeeId)}
+                      onChange={() => toggleRow(r.employeeId)}
+                      className="h-4 w-4"
+                    />
+                  </td>
                   <td className="px-4 py-2.5 text-ink">{r.name}</td>
                   <td className="px-4 py-2.5 text-muted">{r.nip ?? "-"}</td>
                   <td className="px-4 py-2.5 text-muted">{r.unitName ?? "-"}</td>
@@ -203,7 +355,7 @@ export default function PresensiPage() {
                       href={`/admin/presensi/${r.employeeId}`}
                       className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors"
                     >
-                      Detail bulanan
+                      Detail
                     </Link>
                   </td>
                 </tr>
