@@ -152,10 +152,10 @@ export async function buildAttendanceGridPdf(
     function drawKop() {
       const top = doc.y;
       if (logoBuffer) doc.image(logoBuffer, left, top, { width: 64 });
-      doc.font("Helvetica-Bold").fontSize(11);
+      doc.font("Helvetica-Bold").fontSize(12);
       doc.text("KEMENTERIAN AGAMA REPUBLIK INDONESIA", left + 76, top, { width: right - left - 76, align: "center" });
       doc.text("UNIVERSITAS ISLAM NEGERI", left + 76, doc.y, { width: right - left - 76, align: "center" });
-      doc.fontSize(13).text("PALOPO", left + 76, doc.y, { width: right - left - 76, align: "center" });
+      doc.fontSize(14).text("PALOPO", left + 76, doc.y, { width: right - left - 76, align: "center" });
       doc.font("Helvetica").fontSize(8);
       doc.text("Kampus 1 Jalan Agatis Kel. Balandai Kec. Bara Kota Palopo Sulawesi Selatan 91914", left + 76, doc.y, {
         width: right - left - 76,
@@ -167,10 +167,10 @@ export async function buildAttendanceGridPdf(
       });
       doc.y = Math.max(doc.y, top + 68);
       doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(2).strokeColor("#000000").stroke();
-      doc.moveDown(0.9);
+      doc.moveDown(1.5);
       doc.font("Helvetica-Bold").fontSize(BASE_FONT + 2).text("DAFTAR HADIR", left, doc.y);
       doc.font("Helvetica").fontSize(BASE_FONT).text(`Bulan : ${monthLabel(month)}`, left, doc.y);
-      doc.moveDown(0.5);
+      doc.moveDown(1.5);
     }
 
     function colX(index: number): number {
