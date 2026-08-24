@@ -152,17 +152,20 @@ export async function buildAttendanceGridPdf(
     function drawKop() {
       const top = doc.y;
       if (logoBuffer) doc.image(logoBuffer, left, top, { width: 64 });
+      // Teks kop di-center pada lebar PENUH (left..right), sama seperti "DAFTAR HADIR" di
+      // bawahnya yang mulai dari left -- supaya keduanya sejajar/segaris kiri-tengah. Logo
+      // digambar terpisah di pojok kiri atas, tidak ikut menggeser box center teks.
       doc.font("Helvetica-Bold").fontSize(12);
-      doc.text("KEMENTERIAN AGAMA REPUBLIK INDONESIA", left + 76, top, { width: right - left - 76, align: "center" });
-      doc.text("UNIVERSITAS ISLAM NEGERI", left + 76, doc.y, { width: right - left - 76, align: "center" });
-      doc.fontSize(14).text("PALOPO", left + 76, doc.y, { width: right - left - 76, align: "center" });
+      doc.text("KEMENTERIAN AGAMA REPUBLIK INDONESIA", left, top, { width: right - left, align: "center" });
+      doc.text("UNIVERSITAS ISLAM NEGERI", left, doc.y, { width: right - left, align: "center" });
+      doc.fontSize(14).text("PALOPO", left, doc.y, { width: right - left, align: "center" });
       doc.font("Helvetica").fontSize(8);
-      doc.text("Kampus 1 Jalan Agatis Kel. Balandai Kec. Bara Kota Palopo Sulawesi Selatan 91914", left + 76, doc.y, {
-        width: right - left - 76,
+      doc.text("Kampus 1 Jalan Agatis Kel. Balandai Kec. Bara Kota Palopo Sulawesi Selatan 91914", left, doc.y, {
+        width: right - left,
         align: "center",
       });
-      doc.text("email: kontak@uinpalopo.ac.id  website https://uinpalopo.ac.id", left + 76, doc.y, {
-        width: right - left - 76,
+      doc.text("email: kontak@uinpalopo.ac.id  website https://uinpalopo.ac.id", left, doc.y, {
+        width: right - left,
         align: "center",
       });
       doc.y = Math.max(doc.y, top + 68);
