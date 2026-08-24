@@ -14,6 +14,8 @@ type LeaveRequest = {
   end_date: string;
   reason: string | null;
   status: "pengajuan" | "disetujui" | "ditolak";
+  document_url: string | null;
+  wa_notified_at: string | null;
 };
 
 type LeaveType = { id: string; name: string };
@@ -57,8 +59,38 @@ export default function KetidakhadiranPage() {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [formStatus, setFormStatus] = useState<"disetujui" | "pengajuan">("disetujui");
+  const [editDocumentUrl, setEditDocumentUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
+  const ALLOWED_DOCUMENT_TYPES = ["application/pdf", "image/jpeg", "image/jpg"];
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    if (!f) {
+      setFile(null);
+      setFileError("");
+      return;
+    }
+    if (!ALLOWED_DOCUMENT_TYPES.includes(f.type)) {
+      setFile(null);
+      setFileError("Dokumen harus berformat PDF atau JPG.");
+      e.target.value = "";
+      return;
+    }
+    if (f.size > MAX_DOCUMENT_BYTES) {
+      setFile(null);
+      setFileError("Ukuran dokumen maksimal 5MB.");
+      e.target.value = "";
+      return;
+    }
+    setFile(f);
+    setFileError("");
+  }
 
   const load = useCallback(() => {
     setLoading(true);
@@ -112,6 +144,9 @@ export default function KetidakhadiranPage() {
     setEndDate("");
     setReason("");
     setFormStatus("disetujui");
+    setEditDocumentUrl(null);
+    setFile(null);
+    setFileError("");
     setError("");
   }
 
@@ -124,6 +159,9 @@ export default function KetidakhadiranPage() {
     setEndDate(r.end_date);
     setReason(r.reason ?? "");
     setFormStatus(r.status === "ditolak" ? "pengajuan" : r.status);
+    setEditDocumentUrl(r.document_url);
+    setFile(null);
+    setFileError("");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -131,29 +169,36 @@ export default function KetidakhadiranPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setNotice("");
     if (!selectedEmp) {
       setError("Pilih pegawai dulu.");
       return;
     }
     setSubmitting(true);
     try {
-      const payload = {
-        employee_id: selectedEmp.id,
-        leave_type_id: leaveTypeId,
-        start_date: startDate,
-        end_date: endDate,
-        reason,
-        status: formStatus,
-      };
-      const res = await fetch(editingId ? `/api/admin/ketidakhadiran/${editingId}` : "/api/admin/ketidakhadiran", {
-        method: editingId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      let res: Response;
+      const payload = new FormData();
+      payload.set("employee_id", selectedEmp.id);
+      payload.set("leave_type_id", leaveTypeId);
+      payload.set("start_date", startDate);
+      payload.set("end_date", endDate);
+      payload.set("reason", reason);
+      payload.set("status", formStatus);
+      if (file) payload.set("file", file);
+      if (editingId) {
+        res = await fetch(`/api/admin/ketidakhadiran/${editingId}`, { method: "PATCH", body: payload });
+      } else {
+        res = await fetch("/api/admin/ketidakhadiran", { method: "POST", body: payload });
+      }
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Gagal menyimpan.");
         return;
+      }
+      if (!editingId && file && !data.wa_notified) {
+        setNotice(
+          "Tersimpan, tapi notifikasi WA gagal terkirim — kemungkinan nomor pegawai di luar jendela 24 jam WhatsApp atau belum terdaftar/aktif.",
+        );
       }
       resetForm();
       load();
@@ -262,6 +307,34 @@ export default function KetidakhadiranPage() {
             </select>
           </label>
 
+          <label className="block sm:col-span-2">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Dokumen (PDF/JPG, maks 5MB)</span>
+            {editingId && editDocumentUrl && (
+              <div className="mb-2">
+                <a
+                  href={editDocumentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12.5px] font-semibold text-cardGreenDark underline"
+                >
+                  Lihat dokumen saat ini
+                </a>
+              </div>
+            )}
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+              onChange={handleFileChange}
+              className="block w-full text-[13px] text-ink file:mr-3 file:rounded-full file:border-0 file:bg-cardGreen file:px-4 file:py-2 file:text-[12.5px] file:font-semibold file:text-canvas"
+            />
+            <span className="mt-1 block text-[11.5px] text-muted">
+              {editingId
+                ? "Opsional. Upload file baru untuk mengganti dokumen yang sudah ada."
+                : "Opsional. Jika diisi, pegawai otomatis dikirimi notifikasi WhatsApp berisi link dokumen ini (mis. Surat Tugas dinas luar)."}
+            </span>
+            {fileError && <span className="mt-1 block text-[12px] text-red-700">{fileError}</span>}
+          </label>
+
           <div className="sm:col-span-2 flex items-center gap-3">
             <button
               type="submit"
@@ -277,6 +350,7 @@ export default function KetidakhadiranPage() {
             )}
           </div>
           {error && <p className="sm:col-span-2 text-[13px] text-red-700">{error}</p>}
+          {notice && <p className="sm:col-span-2 text-[13px] text-amber-700">{notice}</p>}
         </form>
       </section>
 
@@ -331,6 +405,7 @@ export default function KetidakhadiranPage() {
                   <th className="text-left px-4 py-2.5 font-semibold">Tanggal</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Keterangan</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Status</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Dokumen</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
                 </tr>
               </thead>
@@ -350,6 +425,29 @@ export default function KetidakhadiranPage() {
                       <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${STATUS_CLASS[r.status]}`}>
                         {STATUS_LABEL[r.status]}
                       </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {r.document_url ? (
+                        <div className="flex flex-col items-start gap-1">
+                          <a
+                            href={r.document_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[12.5px] font-semibold text-cardGreenDark underline"
+                          >
+                            Lihat dokumen
+                          </a>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              r.wa_notified_at ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {r.wa_notified_at ? "WA terkirim" : "WA gagal"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-2">
