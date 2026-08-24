@@ -73,7 +73,9 @@ export default function PresensiPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Map (bukan Set) supaya nama pegawai yang sudah dicentang tetap bisa ditampilkan di
+  // panel Cetak walau pegawainya sedang tidak muncul di halaman/filter saat ini.
+  const [selected, setSelected] = useState<Map<string, string>>(new Map());
   const [printOpen, setPrintOpen] = useState(false);
   const [printMonth, setPrintMonth] = useState(todayIso().slice(0, 7));
   const [printing, setPrinting] = useState<"pdf" | "excel" | null>(null);
@@ -118,24 +120,32 @@ export default function PresensiPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  function toggleRow(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
+  function toggleRow(id: string, name: string) {
+    setSelected((prev) => {
+      const next = new Map(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else next.set(id, name);
       return next;
     });
   }
 
-  const allOnPageSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.employeeId));
+  function removeSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  const allOnPageSelected = rows.length > 0 && rows.every((r) => selected.has(r.employeeId));
 
   function toggleAllOnPage() {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
+    setSelected((prev) => {
+      const next = new Map(prev);
       if (allOnPageSelected) {
         for (const r of rows) next.delete(r.employeeId);
       } else {
-        for (const r of rows) next.add(r.employeeId);
+        for (const r of rows) next.set(r.employeeId, r.name);
       }
       return next;
     });
@@ -151,7 +161,7 @@ export default function PresensiPage() {
         body: JSON.stringify({
           month: printMonth,
           format,
-          employeeIds: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+          employeeIds: selected.size > 0 ? Array.from(selected.keys()) : undefined,
           q: debouncedSearch || undefined,
           category: category || undefined,
           unitId: unitId || undefined,
@@ -258,36 +268,71 @@ export default function PresensiPage() {
       </div>
 
       {printOpen && (
-        <div className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6 flex flex-wrap items-end gap-3">
-          <label className="block">
-            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Bulan</span>
-            <input
-              type="month"
-              value={printMonth}
-              onChange={(e) => setPrintMonth(e.target.value)}
-              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
-            />
-          </label>
-          <button
-            type="button"
-            disabled={printing !== null}
-            onClick={() => handlePrint("pdf")}
-            className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
-          >
-            {printing === "pdf" ? "Membuat PDF…" : "Unduh PDF"}
-          </button>
-          <button
-            type="button"
-            disabled={printing !== null}
-            onClick={() => handlePrint("excel")}
-            className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
-          >
-            {printing === "excel" ? "Membuat Excel…" : "Unduh Excel"}
-          </button>
-          <p className="text-[12.5px] text-muted">
-            {selectedIds.size > 0 ? `${selectedIds.size} pegawai dipilih` : "Semua pegawai sesuai filter saat ini"}
-          </p>
-          {printError && <p className="text-[13px] text-red-700 w-full">{printError}</p>}
+        <div className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block">
+              <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Bulan</span>
+              <input
+                type="month"
+                value={printMonth}
+                onChange={(e) => setPrintMonth(e.target.value)}
+                className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={printing !== null}
+              onClick={() => handlePrint("pdf")}
+              className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+            >
+              {printing === "pdf" ? "Membuat PDF…" : "Unduh PDF"}
+            </button>
+            <button
+              type="button"
+              disabled={printing !== null}
+              onClick={() => handlePrint("excel")}
+              className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+            >
+              {printing === "excel" ? "Membuat Excel…" : "Unduh Excel"}
+            </button>
+          </div>
+
+          {selected.size === 0 ? (
+            <p className="text-[12.5px] text-muted mt-3">Semua pegawai sesuai filter saat ini</p>
+          ) : (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[12.5px] font-semibold text-ink">{selected.size} pegawai dipilih</p>
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Map())}
+                  className="text-[12px] font-semibold text-red-700 hover:underline"
+                >
+                  Kosongkan semua
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from(selected.entries()).map(([id, name]) => (
+                  <span
+                    key={id}
+                    className="flex items-center gap-1.5 rounded-full bg-pineLight px-3 py-1 text-[12px] text-ink"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => removeSelected(id)}
+                      aria-label={`Batalkan pilihan ${name}`}
+                      className="text-muted hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {printError && <p className="text-[13px] text-red-700 mt-3">{printError}</p>}
         </div>
       )}
 
@@ -332,8 +377,8 @@ export default function PresensiPage() {
                   <td className="px-4 py-2.5">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(r.employeeId)}
-                      onChange={() => toggleRow(r.employeeId)}
+                      checked={selected.has(r.employeeId)}
+                      onChange={() => toggleRow(r.employeeId, r.name)}
                       className="h-4 w-4"
                     />
                   </td>
