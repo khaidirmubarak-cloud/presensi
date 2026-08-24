@@ -51,19 +51,36 @@ export async function GET(req: NextRequest) {
     ? (searchParams.get("period") as string)
     : witaToday.slice(0, 7);
   const q = searchParams.get("q")?.trim() || "";
+  const category = searchParams.get("category")?.trim() || "";
+  const unitId = searchParams.get("unitId")?.trim() || "";
   const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
     ? Number(searchParams.get("pageSize"))
     : 50;
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const offset = (page - 1) * pageSize;
 
-  const where = q ? "AND (e.name LIKE ? OR e.nip LIKE ?)" : "";
-  const params = q ? [period, `%${q}%`, `%${q}%`] : [period];
+  const conditions: string[] = [];
+  const filterParams: string[] = [];
+  if (q) {
+    conditions.push("(e.name LIKE ? OR e.nip LIKE ?)");
+    filterParams.push(`%${q}%`, `%${q}%`);
+  }
+  if (category) {
+    conditions.push("p.employee_category = ?");
+    filterParams.push(category);
+  }
+  if (unitId) {
+    conditions.push("p.unit_id = ?");
+    filterParams.push(unitId);
+  }
+  const where = conditions.length > 0 ? `AND ${conditions.join(" AND ")}` : "";
+  const params = [period, ...filterParams];
 
   const countRow = await queryOne<{ total: number }>(
     `SELECT COUNT(*) AS total
      FROM tukin_calculations tc
      JOIN employees e ON e.id = tc.employee_id
+     LEFT JOIN employee_profiles p ON p.employee_id = e.id
      WHERE tc.period = ? ${where}`,
     params,
   );
@@ -86,7 +103,22 @@ export async function GET(req: NextRequest) {
     [...params, pageSize, offset],
   );
 
-  return NextResponse.json({ period, calculations: rows, total, page, pageSize });
+  const [categoryRows, unitRows] = await Promise.all([
+    query<{ employee_category: string }>(
+      "SELECT DISTINCT employee_category FROM employee_profiles WHERE employee_category IS NOT NULL AND employee_category <> '' ORDER BY employee_category",
+    ),
+    query<{ id: string; name: string }>("SELECT id, name FROM units ORDER BY name"),
+  ]);
+
+  return NextResponse.json({
+    period,
+    calculations: rows,
+    total,
+    page,
+    pageSize,
+    categories: categoryRows.map((r) => r.employee_category),
+    units: unitRows,
+  });
 }
 
 export async function POST(req: NextRequest) {
