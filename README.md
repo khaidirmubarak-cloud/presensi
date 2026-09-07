@@ -136,6 +136,68 @@ serdos di Tukin; tidak ada data per-pegawai yang dimigrasikan, lihat catatan di
 npm run migrate:gaji-pokok
 ```
 
+## 2b. Migrasi delta (catch-up data baru dari cobakinerja setelah migrasi awal)
+
+Selama app lama (`http://36.88.112.181/cobakinerja`) masih live berdampingan dengan app baru,
+data di sana (pegawai baru/berubah, cuti/izin, scan fingerprint) terus bertambah. Supaya
+data di produksi "nyambung" (tidak ada gap), cukup **jalankan ulang 4 script migrasi yang
+sama** (`migrate:cobakinerja` -> `migrate:calendar` -> `migrate:fingerprint` ->
+`migrate:leave`, urutan ini penting karena `employees` jadi rujukan tabel lain) -- semuanya
+idempotent (`INSERT IGNORE`/upsert by legacy id), jadi aman dijalankan berkali-kali, cuma
+baris baru/berubah yang masuk, tidak akan dobel.
+
+**1. Buka 2 tunnel SSH** (biarkan kedua terminal ini tetap terbuka selama proses):
+
+Terminal A -- tunnel ke database `cobakinerja` (VPS lama, pola sama seperti
+`~/Documents/GitHub/import-presensi-app/README.md`):
+```bash
+ssh -p 1212 -L 13306:127.0.0.1:3306 root@36.88.253.86 -N
+```
+Terminal B -- tunnel ke database produksi (lewat cPanel, pakai SSH key yang sudah dikonfigurasi
+sebagai host `lkh-cpanel` di `~/.ssh/config`):
+```bash
+ssh -L 13307:127.0.0.1:3306 lkh-cpanel -N
+```
+
+**2. Backup database produksi dulu** (jaring pengaman sebelum menulis ke produksi):
+```bash
+ssh lkh-cpanel "mysqldump -h 127.0.0.1 -u lkhuinplp_app -p'<password>' lkhuinplp_db | gzip > ~/backups/lkhuinplp_db_\$(date +%Y%m%d_%H%M%S).sql.gz"
+```
+
+**3. Buat file env sementara** (jangan pernah commit, hapus lagi setelah selesai), isi
+`DB_*` mengarah ke tunnel Terminal B dan `SOURCE_DB_*` ke tunnel Terminal A:
+```
+DB_HOST=127.0.0.1
+DB_PORT=13307
+DB_USER=lkhuinplp_app
+DB_PASSWORD=<password produksi>
+DB_NAME=lkhuinplp_db
+
+SOURCE_DB_HOST=127.0.0.1
+SOURCE_DB_PORT=13306
+SOURCE_DB_USER=root
+SOURCE_DB_PASSWORD=<password mysql root VPS lama>
+SOURCE_DB_NAME=cobakinerja
+```
+
+**4. Load env lalu jalankan ke-4 perintah secara urut** (di terminal ketiga, folder repo ini):
+```bash
+set -a && source /tmp/migrate-delta.env && set +a
+npm run migrate:cobakinerja
+npm run migrate:calendar
+npm run migrate:fingerprint
+npm run migrate:leave
+```
+`migrate:fingerprint` paling lama (scan ulang seluruh histori ~1,5 juta baris lewat tunnel,
+bisa beberapa menit) -- yang lain cepat.
+
+**5. Beres-beres**: tutup kedua tunnel (`Ctrl+C` di Terminal A & B), hapus file env
+sementara (`rm /tmp/migrate-delta.env`, isinya password).
+
+Tidak perlu jalankan `migrate:lembur`/`migrate:tukin`/`migrate:uang-makan`/`migrate:gaji-pokok`
+untuk catch-up rutin -- itu migrasi master data satu kali (Fase 5-7), bukan data transaksional
+yang terus bertambah di app lama.
+
 ## Kontrak `fingerprint_scans` (untuk tool sinkron mesin fingerprint)
 
 `absen` di cobakinerja **tidak diisi oleh kode PHP manapun** (dikonfirmasi: cuma ada fitur
