@@ -19,6 +19,12 @@ export async function middleware(req: NextRequest) {
     return withNoStore(NextResponse.next());
   }
 
+  // Endpoint server-ke-server (dipanggil dashboard-kinerja, bukan browser) -- tidak pakai
+  // session, autentikasinya header x-internal-secret yang dicek di masing-masing route.
+  if (pathname.startsWith("/api/internal/")) {
+    return withNoStore(NextResponse.next());
+  }
+
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await verifySession(token) : null;
 
