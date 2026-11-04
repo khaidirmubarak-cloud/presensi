@@ -161,8 +161,11 @@ ssh -L 13307:127.0.0.1:3306 lkh-cpanel -N
 
 **2. Backup database produksi dulu** (jaring pengaman sebelum menulis ke produksi):
 ```bash
-ssh lkh-cpanel "mysqldump -h 127.0.0.1 -u lkhuinplp_app -p'<password>' lkhuinplp_db | gzip > ~/backups/lkhuinplp_db_\$(date +%Y%m%d_%H%M%S).sql.gz"
+ssh lkh-cpanel '~/apps/kinerja/scripts/backup.sh'
 ```
+Script ini (repo `kinerja`, lihat `kinerja/README.md` §9) mem-backup database + file dokumentasi ke
+`~/backups/` di server, mengambil kredensial DB otomatis dari env Setup Node.js App -- tidak perlu
+mengetik password. Pastikan outputnya diakhiri "Backup selesai" sebelum lanjut.
 
 **3. Buat file env sementara** (jangan pernah commit, hapus lagi setelah selesai), isi
 `DB_*` mengarah ke tunnel Terminal B dan `SOURCE_DB_*` ke tunnel Terminal A:
