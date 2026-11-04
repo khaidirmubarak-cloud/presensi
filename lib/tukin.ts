@@ -5,13 +5,34 @@ export type DeductionTier = { max_minutes: number | null; percent: number };
 // Dulu hardcode -- sekarang data-driven dari tabel tukin_deduction_tiers (Fase 6b) supaya
 // bisa diedit admin lewat /admin/master/potongan-tukin, konsisten dengan aturan bisnis
 // lain di aplikasi ini (jam kerja, jenis cuti, dst -- semua di database, bukan kode).
-export function minutesToDeductionPercent(minutes: number | null, tiers: DeductionTier[]): number {
-  if (!minutes || minutes <= 0) return 0;
-  const sorted = [...tiers].sort((a, b) => (a.max_minutes ?? Infinity) - (b.max_minutes ?? Infinity));
-  for (const t of sorted) {
-    if (t.max_minutes === null || minutes <= t.max_minutes) return t.percent;
+export function sortTiers(tiers: DeductionTier[]): DeductionTier[] {
+  return [...tiers].sort((a, b) => (a.max_minutes ?? Infinity) - (b.max_minutes ?? Infinity));
+}
+
+// Indeks tier (dalam urutan sortTiers) untuk sekian menit, -1 kalau tidak kena potongan.
+// Infinity = tidak presensi masuk/pulang -> selalu tier tertinggi (aturan kepegawaian:
+// dihitung kategori > 90 menit), walau tier tertinggi di master punya batas max_minutes.
+export function tierIndex(minutes: number | null, tiers: DeductionTier[]): number {
+  if (!minutes || minutes <= 0) return -1;
+  const sorted = sortTiers(tiers);
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i].max_minutes === null || minutes <= sorted[i].max_minutes!) return i;
   }
-  return 0;
+  return minutes === Infinity ? sorted.length - 1 : -1;
+}
+
+export function minutesToDeductionPercent(minutes: number | null, tiers: DeductionTier[]): number {
+  const i = tierIndex(minutes, tiers);
+  return i < 0 ? 0 : sortTiers(tiers)[i].percent;
+}
+
+// Menit yang dipakai untuk potongan -- tidak presensi masuk/pulang diperlakukan tak hingga.
+export function effectiveTelatMinutes(day: DailyStatusResult): number | null {
+  return day.tidakPresensiMasuk ? Infinity : day.telatMenit;
+}
+
+export function effectivePulangCepatMinutes(day: DailyStatusResult): number | null {
+  return day.tidakPresensiPulang ? Infinity : day.pulangCepatMenit;
 }
 
 export type SalaryScale = { rank_id: string; years: number; nominal: number };
@@ -74,8 +95,8 @@ export function computeDailyDeduction(
   }
 
   // hadir | terlambat | pulang_cepat -- keduanya independen, dijumlah (bukan dipilih salah satu).
-  const telatPercent = minutesToDeductionPercent(day.telatMenit, tiers);
-  const pulangCepatPercent = minutesToDeductionPercent(day.pulangCepatMenit, tiers);
+  const telatPercent = minutesToDeductionPercent(effectiveTelatMinutes(day), tiers);
+  const pulangCepatPercent = minutesToDeductionPercent(effectivePulangCepatMinutes(day), tiers);
   return { telatPercent, pulangCepatPercent, alpaPercent: 0, leavePercent: 0, totalPercent: telatPercent + pulangCepatPercent };
 }
 

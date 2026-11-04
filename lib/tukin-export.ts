@@ -3,7 +3,7 @@ import path from "path";
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import type { DailyStatusResult } from "./attendance-status";
-import type { DeductionTier } from "./tukin";
+import { type DeductionTier, tierIndex, effectiveTelatMinutes, effectivePulangCepatMinutes } from "./tukin";
 
 // Replika layout "PERHITUNGAN TUNJANGAN KINERJA PEGAWAI PER BULAN" legacy cobakinerja
 // (cetak/laprekaptukinpegawai.php) -- 1 baris = 1 pegawai (beda dari grid harian
@@ -154,15 +154,6 @@ function rowValues(r: TukinReportRow, rates: TukinReportRates): (string)[] {
 // cuma agregat persen (yang sudah tersimpan di tukin_calculations dan dipakai apa adanya
 // utk kolom Total Pengurangan). C6/CS dihitung sistem tapi tidak dicetak -- sama seperti
 // source PHP-nya (echo baris 464-503 cuma print TK/I/C5).
-function tierIndex(minutes: number | null, tiers: DeductionTier[]): number {
-  if (!minutes || minutes <= 0) return -1;
-  const sorted = [...tiers].sort((a, b) => (a.max_minutes ?? Infinity) - (b.max_minutes ?? Infinity));
-  for (let i = 0; i < sorted.length; i++) {
-    if (sorted[i].max_minutes === null || minutes <= sorted[i].max_minutes!) return i;
-  }
-  return -1;
-}
-
 export function summarizeTukinBreakdown(
   days: DailyStatusResult[],
   tiers: DeductionTier[],
@@ -181,9 +172,9 @@ export function summarizeTukinBreakdown(
     if (day.status === "belum_ada_data") tkCount++;
     if (day.status === "cuti" && day.leaveTypeId === "I") iCount++;
     if (day.status === "cuti" && day.leaveTypeId === "C5") c5Count++;
-    const tIdx = tierIndex(day.telatMenit, tiers);
+    const tIdx = tierIndex(effectiveTelatMinutes(day), tiers);
     if (tIdx >= 0) tlCount[tIdx]++;
-    const pIdx = tierIndex(day.pulangCepatMenit, tiers);
+    const pIdx = tierIndex(effectivePulangCepatMinutes(day), tiers);
     if (pIdx >= 0) pswCount[pIdx]++;
   }
 

@@ -84,7 +84,18 @@ export type DailyStatusResult = {
   sumber: AttendanceSource;
   leaveTypeName: string | null;
   leaveTypeId: string | null;
+  // Hanya ada satu scan/ping hari itu -- aturan kepegawaian: dihitung potongan kategori
+  // tertinggi (>90 menit) untuk sisi yang tidak presensi (lihat lib/tukin.ts). Sama hasilnya
+  // dengan cobakinerja (config/hitung.php), yang memakai MIN/MAX scan sebagai datang/pulang
+  // sehingga satu scan pagi otomatis jadi "pulang cepat" > 90 menit.
+  tidakPresensiMasuk: boolean;
+  tidakPresensiPulang: boolean;
 };
+
+// Tanggal hari ini (WITA) dalam format 'YYYY-MM-DD'.
+export function todayWita(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIMEZONE }).format(new Date());
+}
 
 function witaTimeOfDay(isoDatetime: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -114,6 +125,7 @@ export function computeDailyStatus(
   rules: WorkHourRule[],
   fingerprintScans: FingerprintScan[] = [],
   approvedLeave: { id: string; name: string } | null = null,
+  today: string = todayWita(), // 'YYYY-MM-DD' WITA -- parameter supaya bisa diuji
 ): DailyStatusResult {
   const asUtcDate = new Date(`${date}T00:00:00Z`);
   const empty: DailyStatusResult = {
@@ -125,6 +137,8 @@ export function computeDailyStatus(
     sumber: null,
     leaveTypeName: null,
     leaveTypeId: null,
+    tidakPresensiMasuk: false,
+    tidakPresensiPulang: false,
   };
 
   if (isWeekend(asUtcDate) || isHoliday(asUtcDate, holidayDates)) {
@@ -162,30 +176,50 @@ export function computeDailyStatus(
       sumber,
       leaveTypeName: null,
       leaveTypeId: null,
+      tidakPresensiMasuk: false,
+      tidakPresensiPulang: false,
     };
   }
 
-  const masukMenit = toMinutes(witaTimeOfDay(jamMasuk));
-  const telatMenit = Math.max(0, masukMenit - toMinutes(rule.check_in_time));
+  const checkInMenit = toMinutes(rule.check_in_time);
+  const checkOutMenit = toMinutes(rule.check_out_time);
 
-  let pulangCepatMenit: number | null = null;
-  if (jamPulang) {
-    const pulangMenit = toMinutes(witaTimeOfDay(jamPulang));
-    pulangCepatMenit = Math.max(0, toMinutes(rule.check_out_time) - pulangMenit);
+  // Cuma satu scan/ping: tentukan itu presensi masuk atau pulang dari posisinya terhadap titik
+  // tengah jam kerja. Sebelum tengah = masuk (tidak presensi pulang); sesudahnya = pulang
+  // (tidak presensi masuk).
+  let masuk: string | null = jamMasuk;
+  let pulang: string | null = jamPulang;
+  let tidakPresensiMasuk = false;
+  let tidakPresensiPulang = false;
+  if (!pulang) {
+    const scanMenit = toMinutes(witaTimeOfDay(jamMasuk));
+    if (scanMenit >= (checkInMenit + checkOutMenit) / 2) {
+      pulang = jamMasuk;
+      masuk = null;
+      tidakPresensiMasuk = true;
+    } else if (date < today) {
+      // Hari ini belum dihitung -- pegawai yang baru presensi masuk belum tentu lupa pulang.
+      tidakPresensiPulang = true;
+    }
   }
 
+  const telatMenit = masuk ? Math.max(0, toMinutes(witaTimeOfDay(masuk)) - checkInMenit) : null;
+  const pulangCepatMenit = pulang ? Math.max(0, checkOutMenit - toMinutes(witaTimeOfDay(pulang))) : null;
+
   let status: AttendanceStatus = "hadir";
-  if (telatMenit > 0) status = "terlambat";
-  else if (pulangCepatMenit && pulangCepatMenit > 0) status = "pulang_cepat";
+  if (tidakPresensiMasuk || (telatMenit !== null && telatMenit > 0)) status = "terlambat";
+  else if (tidakPresensiPulang || (pulangCepatMenit !== null && pulangCepatMenit > 0)) status = "pulang_cepat";
 
   return {
     status,
-    jamMasuk,
-    jamPulang,
+    jamMasuk: masuk,
+    jamPulang: pulang,
     telatMenit,
     pulangCepatMenit,
     sumber,
     leaveTypeName: null,
     leaveTypeId: null,
+    tidakPresensiMasuk,
+    tidakPresensiPulang,
   };
 }

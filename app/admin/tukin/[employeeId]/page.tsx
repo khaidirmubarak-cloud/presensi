@@ -12,6 +12,8 @@ type DayRow = {
   telatPercent: number;
   pulangCepatMenit: number | null;
   pulangCepatPercent: number;
+  tidakPresensiMasuk: boolean;
+  tidakPresensiPulang: boolean;
   alpaPercent: number;
   leavePercent: number;
   leaveTypeName: string | null;
@@ -208,7 +210,15 @@ export default function TukinPegawaiPage() {
                   <td className="px-4 py-2.5 text-muted text-right">{pct(d.leavePercent)}</td>
                   <td className="px-4 py-2.5 text-ink text-right font-semibold">{d.totalPercent > 0 ? d.totalPercent : "-"}</td>
                   <td className="px-4 py-2.5 text-muted text-right">{d.potonganRp && d.potonganRp > 0 ? rupiah(d.potonganRp) : "0"}</td>
-                  <td className="px-4 py-2.5 text-muted text-[12.5px]">{d.leaveTypeName ?? ""}</td>
+                  <td className="px-4 py-2.5 text-muted text-[12.5px]">
+                    {[
+                      d.leaveTypeName,
+                      d.tidakPresensiMasuk ? "Tidak presensi masuk" : null,
+                      d.tidakPresensiPulang ? "Tidak presensi pulang" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </td>
                 </tr>
               ))}
             </tbody>

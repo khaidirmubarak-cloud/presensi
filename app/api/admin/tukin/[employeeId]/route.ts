@@ -180,6 +180,8 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
       telatPercent: breakdown.telatPercent,
       pulangCepatMenit: daily.pulangCepatMenit,
       pulangCepatPercent: breakdown.pulangCepatPercent,
+      tidakPresensiMasuk: daily.tidakPresensiMasuk,
+      tidakPresensiPulang: daily.tidakPresensiPulang,
       alpaPercent: breakdown.alpaPercent,
       leavePercent: breakdown.leavePercent,
       leaveTypeName: daily.leaveTypeName,

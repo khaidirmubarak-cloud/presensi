@@ -14,6 +14,8 @@ type PresensiRow = {
   jamPulang: string | null;
   telatMenit: number | null;
   pulangCepatMenit: number | null;
+  tidakPresensiMasuk: boolean;
+  tidakPresensiPulang: boolean;
   sumber: "fingerprint" | "wa_ping" | null;
   leaveTypeName: string | null;
 };
@@ -393,6 +395,8 @@ export default function PresensiPage() {
                       {r.status === "cuti" && r.leaveTypeName ? r.leaveTypeName : STATUS_LABEL[r.status]}
                       {r.status === "terlambat" && r.telatMenit ? ` (${r.telatMenit} mnt)` : ""}
                       {r.status === "pulang_cepat" && r.pulangCepatMenit ? ` (${r.pulangCepatMenit} mnt)` : ""}
+                      {r.tidakPresensiMasuk ? " (tidak presensi masuk)" : ""}
+                      {r.tidakPresensiPulang ? " (tidak presensi pulang)" : ""}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">

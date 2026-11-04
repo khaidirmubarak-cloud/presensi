@@ -11,6 +11,8 @@ type DayRow = {
   jamPulang: string | null;
   telatMenit: number | null;
   pulangCepatMenit: number | null;
+  tidakPresensiMasuk: boolean;
+  tidakPresensiPulang: boolean;
   sumber: "fingerprint" | "wa_ping" | null;
   leaveTypeName: string | null;
 };
@@ -169,6 +171,8 @@ export default function PresensiPegawaiPage() {
                       {d.status === "cuti" && d.leaveTypeName ? d.leaveTypeName : STATUS_LABEL[d.status]}
                       {d.status === "terlambat" && d.telatMenit ? ` (${d.telatMenit} mnt)` : ""}
                       {d.status === "pulang_cepat" && d.pulangCepatMenit ? ` (${d.pulangCepatMenit} mnt)` : ""}
+                      {d.tidakPresensiMasuk ? " (tidak presensi masuk)" : ""}
+                      {d.tidakPresensiPulang ? " (tidak presensi pulang)" : ""}
                     </span>
                   </td>
                 </tr>
