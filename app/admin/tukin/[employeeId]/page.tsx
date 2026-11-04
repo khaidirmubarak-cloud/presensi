@@ -59,6 +59,33 @@ function pct(v: number): string {
   return v > 0 ? `${v}` : "–";
 }
 
+// Keterangan harian + warnanya, selaras dengan badge status di halaman presensi pegawai:
+// hari yang kena potongan selalu merah, selain itu mengikuti warna status presensinya.
+function keterangan(d: DayRow): { label: string; className: string } {
+  let label: string;
+  if (d.status === "cuti") label = d.leaveTypeName ?? "Cuti";
+  else if (d.status === "belum_ada_data") label = "Tanpa Keterangan";
+  else if (d.status === "libur") label = "Libur";
+  else if (d.status === "shift") label = "Shift";
+  else {
+    const parts: string[] = [];
+    if (d.tidakPresensiMasuk) parts.push("Tidak presensi masuk");
+    else if (d.telatPercent > 0) parts.push(`Terlambat${d.telatMenit ? ` ${d.telatMenit} mnt` : ""}`);
+    if (d.tidakPresensiPulang) parts.push("Tidak presensi pulang");
+    else if (d.pulangCepatPercent > 0) parts.push(`Pulang cepat${d.pulangCepatMenit ? ` ${d.pulangCepatMenit} mnt` : ""}`);
+    label = parts.length > 0 ? parts.join(", ") : "Hadir";
+  }
+
+  let className: string;
+  if (d.totalPercent > 0) className = "bg-red-100 text-red-800";
+  else if (d.status === "cuti") className = "bg-sky-100 text-sky-800";
+  else if (d.status === "libur" || d.status === "shift") className = "bg-pineLight text-ink";
+  else if (d.status === "belum_ada_data") className = "bg-amber-100 text-amber-800";
+  else className = "bg-emerald-100 text-emerald-800";
+
+  return { label, className };
+}
+
 function rupiah(v: number | null): string {
   if (v === null) return "-";
   return v.toLocaleString("id-ID");
@@ -210,14 +237,15 @@ export default function TukinPegawaiPage() {
                   <td className="px-4 py-2.5 text-muted text-right">{pct(d.leavePercent)}</td>
                   <td className="px-4 py-2.5 text-ink text-right font-semibold">{d.totalPercent > 0 ? d.totalPercent : "-"}</td>
                   <td className="px-4 py-2.5 text-muted text-right">{d.potonganRp && d.potonganRp > 0 ? rupiah(d.potonganRp) : "0"}</td>
-                  <td className="px-4 py-2.5 text-muted text-[12.5px]">
-                    {[
-                      d.leaveTypeName,
-                      d.tidakPresensiMasuk ? "Tidak presensi masuk" : null,
-                      d.tidakPresensiPulang ? "Tidak presensi pulang" : null,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
+                  <td className="px-4 py-2.5">
+                    {(() => {
+                      const k = keterangan(d);
+                      return (
+                        <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap ${k.className}`}>
+                          {k.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}
