@@ -102,7 +102,7 @@ const GROUPED = [
 ] as const;
 
 const COL_WIDTHS: number[] = [
-  22, 95, 68, 68, 40, 78, 34, 54, 54, 54, // 0-9
+  22, 95, 68, 80, 40, 78, 34, 54, 54, 54, // 0-9 (NIP 80: 18 digit muat satu baris)
   22, 26, 22, 26, 22, 26, // 10-15 TK,I,C5
   22, 26, 22, 26, 22, 26, 22, 26, // 16-23 TL1-4
   22, 26, 22, 26, 22, 26, 22, 26, // 24-31 PSW1-4
@@ -333,7 +333,15 @@ export async function buildTukinReportPdf(
         const w = COL_WIDTHS[i];
         doc.rect(x, top, w, ROW_H).stroke();
         const align = i === 1 || i === 5 ? "left" : "center";
-        doc.text(values[i], x + 2, top + ROW_H / 2 - 3, { width: w - 4, align, ellipsis: true, lineBreak: false });
+        const text = values[i];
+        // Muat satu baris -> di tengah sel. Kalau tidak, boleh 2 baris di dalam sel sendiri
+        // dan sisanya dipotong "…" (opsi ellipsis pdfkit hanya bekerja bila `height` diisi;
+        // tanpa itu teks dibungkus keluar sel dan menimpa baris pegawai berikutnya).
+        if (doc.widthOfString(text) <= w - 4) {
+          doc.text(text, x + 2, top + ROW_H / 2 - 3, { width: w - 4, align, lineBreak: false });
+        } else {
+          doc.text(text, x + 2, top + 2, { width: w - 4, height: ROW_H - 3, align, ellipsis: true, lineGap: -1 });
+        }
       }
       doc.y = top + ROW_H;
     }
