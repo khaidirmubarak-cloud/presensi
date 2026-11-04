@@ -10,8 +10,10 @@
 // Data quality (ditemukan lewat analisis langsung isi dump, bukan asumsi):
 // - 30 baris tanggal='0000-00-00 00:00:00' (placeholder) -> dilewati.
 // - ~1.996 baris sampah: persis 1 baris per tahun dari 2027 sampai 4022 (pola khas jam
-//   device salah-set) -- data asli sungguhan berhenti di 2026. Baris YEAR(tanggal) > 2026
-//   dilewati.
+//   device salah-set). Baris bertanggal di MASA DEPAN (lebih dari sehari setelah saat
+//   skrip dijalankan, waktu WITA) dilewati. Dulu ini di-hardcode "YEAR(tanggal) > 2026",
+//   yang bakal diam-diam membuang semua scan asli mulai 2027 saat migrasi delta dijalankan
+//   ulang -- batas atasnya sekarang ikut waktu nyata.
 //
 // Aman dijalankan ulang: INSERT IGNORE + UNIQUE(finger_id, scanned_at) di tabel target.
 //
@@ -21,8 +23,18 @@
 import mysql from "mysql2/promise";
 
 const BATCH_SIZE = 2000;
-const LAST_VALID_YEAR = 2026;
 const FIRST_YEAR = 2019;
+
+// Batas atas scan yang dianggap valid: sekarang + 1 hari toleransi (jam mesin bisa sedikit
+// maju), dalam format & zona waktu yang sama dengan kolom `absen.tanggal` (WITA = UTC+8,
+// tanpa DST). Apa pun setelah ini pasti jam device yang salah-set.
+const TOLERANCE_MS = 24 * 60 * 60 * 1000;
+const WITA_OFFSET_MS = 8 * 60 * 60 * 1000;
+const UPPER_BOUND_WITA = new Date(Date.now() + WITA_OFFSET_MS + TOLERANCE_MS)
+  .toISOString()
+  .slice(0, 19)
+  .replace("T", " ");
+const LAST_YEAR = Number(UPPER_BOUND_WITA.slice(0, 4));
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -91,15 +103,17 @@ async function main() {
     let totalSource = 0;
     let totalInserted = 0;
 
-    for (let year = FIRST_YEAR; year <= LAST_VALID_YEAR; year++) {
+    console.log(`Memproses scan ${FIRST_YEAR}-01 s/d ${UPPER_BOUND_WITA} WITA (lebih dari itu dianggap jam device salah).`);
+
+    for (let year = FIRST_YEAR; year <= LAST_YEAR; year++) {
       for (let month = 1; month <= 12; month++) {
         const start = `${year}-${String(month).padStart(2, "0")}-01 00:00:00`;
         const nextMonth = month === 12 ? `${year + 1}-01-01 00:00:00` : `${year}-${String(month + 1).padStart(2, "0")}-01 00:00:00`;
 
         const [rows] = await source.query<any[]>(
           `SELECT id_pegawai, id_finger, tanggal, status FROM absen
-           WHERE tanggal >= ? AND tanggal < ? ORDER BY tanggal`,
-          [start, nextMonth],
+           WHERE tanggal >= ? AND tanggal < ? AND tanggal <= ? ORDER BY tanggal`,
+          [start, nextMonth, UPPER_BOUND_WITA],
         );
         if (rows.length === 0) continue;
 
