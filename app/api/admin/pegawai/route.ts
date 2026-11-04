@@ -11,6 +11,7 @@ type PegawaiRow = {
   nip: string | null;
   department: string | null;
   status: string;
+  phone_number: string | null;
   employee_category: string | null;
   employment_status: string | null;
   rank_code: string | null;
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
 
   const pegawai = await query<PegawaiRow>(
     `SELECT
-       e.id, e.name, e.nip, e.department, e.status,
+       e.id, e.name, e.nip, e.department, e.status, e.phone_number,
        p.employee_category, p.employment_status,
        r.code AS rank_code,
        u.name AS unit_name,
@@ -83,7 +84,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ pegawai, total, page, pageSize, categories });
 }
 
-// Create dasar (nama+NIP saja) -- sama seperti dashboard-kinerja, onboarding penuh
+// Create dasar (nama+NIP saja, status akun 'pending' sampai pegawai klaim akun lewat WA di
+// dashboard Laporan Kinerja Harian) -- onboarding penuh
 // (golongan/unit/jabatan/dst.) terjadi di halaman detail setelah baris ini dibuat.
 export async function POST(req: NextRequest) {
   const session = await getSession();

@@ -73,10 +73,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ pegawai });
 }
 
-// Kolom identitas/login (phone_number, password_hash, status, registration_token) di
-// employees TIDAK PERNAH ditulis dari sini -- itu domain klaim-akun WA milik
-// dashboard-kinerja. Endpoint ini cuma mengubah name/nip/department (field shared yang
-// juga dipakai dashboard-kinerja) dan meng-upsert seluruh field HR ke employee_profiles.
+// Kolom akun login (phone_number, status) TIDAK ditulis dari sini -- ada endpoint terpisah
+// ./akun/route.ts dengan aturan pengamannya sendiri; password_hash/registration_token tetap
+// domain alur klaim-akun/aktivasi WA di dashboard-kinerja. Endpoint ini cuma mengubah
+// name/nip/department dan meng-upsert seluruh field HR ke employee_profiles.
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) {
@@ -196,6 +196,57 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     );
   } catch {
     return NextResponse.json({ error: "Gagal memperbarui data pegawai." }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+// Hapus permanen -- hanya untuk data yang salah input/dobel dan belum punya riwayat apa pun.
+// daily_reports & attendance_pings pakai FK ON DELETE SET NULL (kinerja/schema.mariadb.sql),
+// jadi tanpa cek eksplisit ini laporan kinerja pegawai akan diam-diam kehilangan pemiliknya.
+// Tabel lain (cuti, tukin, uang makan, RHK, dst.) pakai FK biasa dan otomatis menolak hapus.
+// Pegawai yang sudah berhenti/pindah cukup diset "Nonaktif" di Status kepegawaian.
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (session.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (params.id === session.employeeId) {
+    return NextResponse.json({ error: "Tidak bisa menghapus akun sendiri." }, { status: 400 });
+  }
+
+  const usage = await queryOne<{ laporan: number; ping: number }>(
+    `SELECT
+       (SELECT COUNT(*) FROM daily_reports WHERE employee_id = ?) AS laporan,
+       (SELECT COUNT(*) FROM attendance_pings WHERE employee_id = ?) AS ping`,
+    [params.id, params.id],
+  );
+  if (usage && (Number(usage.laporan) > 0 || Number(usage.ping) > 0)) {
+    return NextResponse.json(
+      {
+        error: `Pegawai ini sudah punya ${usage.laporan} laporan kinerja dan ${usage.ping} presensi WA, jadi tidak bisa dihapus. Ubah "Status kepegawaian" menjadi Nonaktif.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  try {
+    const result = await execute("DELETE FROM employees WHERE id = ?", [params.id]);
+    if (result.affectedRows === 0) {
+      return NextResponse.json({ error: "Pegawai tidak ditemukan." }, { status: 404 });
+    }
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          'Pegawai ini masih punya data terkait (cuti/izin, tunjangan kinerja, uang makan, RHK, dll.) sehingga tidak bisa dihapus. Ubah "Status kepegawaian" menjadi Nonaktif.',
+      },
+      { status: 409 },
+    );
   }
 
   return NextResponse.json({ ok: true });

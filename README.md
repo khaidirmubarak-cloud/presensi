@@ -232,13 +232,36 @@ Sama seperti `dashboard-kinerja` -- "Setup Node.js App" terpisah, subdomain send
 dashboard-kinerja). Lihat `dashboard-kinerja/README.md` §2 untuk detail langkah &
 gotcha redeploy (`node_modules` bisa ter-reset setelah `git pull`).
 
+## 4. Pengelolaan pegawai & akun login (pusat)
+
+Semua pengelolaan pegawai dan akun login dilakukan di sini (`/admin/pegawai`) -- dipindah dari
+dashboard-kinerja, yang sekarang khusus dashboard laporan kinerja harian:
+
+- **Tambah pegawai** (nama + NIP) atau **Sync dari Sevima** (`POST /api/admin/pegawai/sync-sevima`,
+  `lib/sevima.ts`). Sync hanya menambah NIP baru dengan status akun `pending`, tidak pernah
+  menimpa pegawai yang sudah ada. Butuh env `SEVIMA_API_URL`, `SEVIMA_APP_KEY`,
+  `SEVIMA_SECRET_KEY` di Setup Node.js App presensi (header `X-App-Key`/`X-Secret-Key`). **IP
+  server harus terdaftar di whitelist Sevima** -- kalau belum, sync gagal 502 (Sevima merespons
+  403). Presensi dan dashboard-kinerja jalan di server cPanel yang sama, jadi IP yang sudah
+  di-whitelist untuk dashboard-kinerja tetap berlaku.
+- **Akun login** di halaman detail pegawai (`PATCH /api/admin/pegawai/[id]/akun`): nomor
+  WhatsApp + status klaim. Mengubah nomor pada akun yang sudah aktif = reset ke `pending`
+  dan nomor dikosongkan (pegawai wajib klaim ulang lewat WA, mencegah admin mengambil alih
+  akun ke nomor lain). Pegawai tetap mengaktifkan akun sendiri lewat "Klaim akun" /
+  aktivasi di dashboard-kinerja -- `password_hash`/`registration_token*` tidak pernah ditulis
+  dari app ini.
+- **Hapus pegawai** (`DELETE /api/admin/pegawai/[id]`) hanya untuk data salah input yang belum
+  punya riwayat: ditolak kalau sudah ada `daily_reports`/`attendance_pings` (FK keduanya
+  `ON DELETE SET NULL`, jadi tanpa cek ini laporan kinerja akan diam-diam kehilangan
+  pemiliknya) atau data lain yang ber-FK (cuti, tukin, uang makan, RHK). Pegawai yang
+  berhenti/pindah cukup diset Nonaktif.
+
 ## Catatan penting
 
-- Endpoint admin di sini tidak pernah menulis `employees.phone_number`/`password_hash`/
-  `status`/`registration_token*` -- kolom-kolom itu domain klaim-akun WA milik
-  `dashboard-kinerja`. Semua field HR/payroll baru disimpan di `employee_profiles` dan
-  tabel referensi (`ranks`, `units`, `job_classes`, `functional_positions`,
-  `tukin_nonpns_grades`, `satker`).
+- Kolom akun login di `employees` (`phone_number`, `status`) hanya ditulis lewat endpoint
+  akun di atas, terpisah dari form data kepegawaian. Semua field HR/payroll disimpan di
+  `employee_profiles` dan tabel referensi (`ranks`, `units`, `job_classes`,
+  `functional_positions`, `tukin_nonpns_grades`, `satker`).
 - Kolom nominal uang (tukin/uang makan) sengaja TIDAK dimodelkan di Fase 1 -- ditambahkan
   belakangan di Fase 6 (`job_classes.base_amount`, `tukin_nonpns_grades.base_amount`) dan
   Fase 7 (`ranks.meal_amount`, `ranks.meal_tax_percent`).

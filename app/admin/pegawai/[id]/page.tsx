@@ -95,6 +95,16 @@ export default function PegawaiDetailPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  // Akun login (nomor WA + status klaim) -- disimpan terpisah dari form data kepegawaian,
+  // lewat /api/admin/pegawai/[id]/akun yang punya aturan reset sendiri.
+  const [akunPhone, setAkunPhone] = useState("");
+  const [akunSaving, setAkunSaving] = useState(false);
+  const [akunError, setAkunError] = useState("");
+  const [akunMessage, setAkunMessage] = useState("");
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   const [ranks, setRanks] = useState<Option[]>([]);
   const [units, setUnits] = useState<Option[]>([]);
   const [functionalPositions, setFunctionalPositions] = useState<
@@ -119,6 +129,7 @@ export default function PegawaiDetailPage() {
           rank_effective_date: toDateInput(p.rank_effective_date),
           retirement_date: toDateInput(p.retirement_date),
         });
+        setAkunPhone(p.phone_number ?? "");
         setRanks((golonganRes.ranks ?? []).map((r: any) => ({ id: r.id, label: `${r.id} — ${r.code}` })));
         setUnits((unitRes.units ?? []).map((u: any) => ({ id: u.id, label: u.name })));
         setFunctionalPositions(
@@ -166,6 +177,71 @@ export default function PegawaiDetailPage() {
     }
   }
 
+  async function handleSaveAkun(e: React.FormEvent) {
+    e.preventDefault();
+    setAkunError("");
+    setAkunMessage("");
+
+    if (
+      form.status === "active" &&
+      akunPhone.trim() !== (form.phone_number ?? "") &&
+      !confirm(
+        "Akun ini sudah aktif. Mengubah nomor WhatsApp akan MERESET akun ke Pending dan mengosongkan nomornya — pegawai wajib klaim akun ulang lewat WhatsApp. Lanjutkan?",
+      )
+    ) {
+      return;
+    }
+
+    setAkunSaving(true);
+    try {
+      const res = await fetch(`/api/admin/pegawai/${params.id}/akun`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: akunPhone }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAkunError(data.error || "Gagal menyimpan akun.");
+        return;
+      }
+
+      setForm((f) => ({ ...f, phone_number: data.akun.phone_number, status: data.akun.status }));
+      setAkunPhone(data.akun.phone_number ?? "");
+      setAkunMessage(
+        data.reset
+          ? "Akun direset ke Pending dan nomor dikosongkan. Pegawai wajib klaim ulang lewat halaman Klaim Akun di dashboard Laporan Kinerja Harian."
+          : "Akun tersimpan.",
+      );
+    } catch {
+      setAkunError("Terjadi kesalahan jaringan.");
+    } finally {
+      setAkunSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleteError("");
+    if (!confirm(`Hapus data pegawai "${form.name}" secara permanen? Tindakan ini tidak bisa dibatalkan.`)) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/pegawai/${params.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setDeleteError(data.error || "Gagal menghapus pegawai.");
+        return;
+      }
+
+      router.push("/admin/pegawai");
+    } catch {
+      setDeleteError("Terjadi kesalahan jaringan.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-14">
@@ -182,11 +258,47 @@ export default function PegawaiDetailPage() {
           ← Kembali ke daftar pegawai
         </Link>
         <h1 className="font-display text-[28px] leading-tight text-ink mt-2">{form.name}</h1>
-        <p className="mt-1 text-[13px] text-muted">
-          Status akun login: {form.status === "active" ? "Aktif" : "Pending"}
-          {form.phone_number ? ` · ${form.phone_number}` : ""}
-        </p>
       </header>
+
+      <form onSubmit={handleSaveAkun} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-muted">Akun login</p>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
+              form.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+            }`}
+          >
+            {form.status === "active" ? "Aktif" : "Pending — belum klaim akun"}
+          </span>
+        </div>
+        <p className="text-[12.5px] text-muted mb-4 max-w-xl">
+          Nomor WhatsApp dipakai pegawai untuk login, mengirim laporan kinerja harian, dan menerima
+          notifikasi. Pegawai berstatus Pending mengaktifkan akunnya sendiri lewat "Klaim akun" di
+          dashboard Laporan Kinerja Harian. Mengubah nomor pada akun yang sudah aktif akan mereset
+          akun ke Pending.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block w-full sm:w-72">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Nomor WhatsApp</span>
+            <input
+              className={inputClass}
+              value={akunPhone}
+              onChange={(e) => setAkunPhone(e.target.value)}
+              placeholder="mis. 6281234567890"
+              inputMode="tel"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={akunSaving}
+            className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          >
+            {akunSaving ? "Menyimpan…" : "Simpan akun"}
+          </button>
+        </div>
+        {akunError && <p className="mt-3 text-[13px] text-red-700">{akunError}</p>}
+        {akunMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{akunMessage}</p>}
+      </form>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5">
@@ -349,6 +461,24 @@ export default function PegawaiDetailPage() {
           {saving ? "Menyimpan…" : "Simpan"}
         </button>
       </form>
+
+      <section className="mt-10 rounded-card border border-red-200 bg-red-50/40 p-5">
+        <p className="font-mono text-[11px] uppercase tracking-wide text-red-800 mb-2">Hapus pegawai</p>
+        <p className="text-[12.5px] text-muted mb-4 max-w-xl">
+          Hanya untuk data salah input atau dobel yang belum punya riwayat. Pegawai yang sudah
+          punya laporan kinerja, presensi, cuti, atau perhitungan tunjangan tidak bisa dihapus —
+          ubah "Status kepegawaian" menjadi Nonaktif.
+        </p>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="rounded-full border border-red-300 px-5 py-2 text-[13px] font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60"
+        >
+          {deleting ? "Menghapus…" : "Hapus pegawai"}
+        </button>
+        {deleteError && <p className="mt-3 text-[13px] text-red-700">{deleteError}</p>}
+      </section>
     </div>
   );
 }
