@@ -133,22 +133,13 @@ export default function AdminPegawaiPage() {
 
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Data Pegawai</h1>
-        <p className="mt-1.5 text-[14px] text-muted max-w-lg">
-          Pusat pengelolaan pegawai dan akun login. Tambahkan pegawai baru (nama + NIP) atau
-          sinkronkan dari Sevima, lalu lengkapi golongan/unit/jabatan dan nomor WhatsApp lewat
-          halaman detail. Pegawai masuk ke dashboard Laporan Kinerja Harian dengan akun SIAKAD atau
-          Google, lalu menghubungkan WhatsApp-nya sendiri dari sana.
-        </p>
       </header>
 
       <section className="rounded-card bg-panel border border-cardGreenDark/20 shadow-[0_1px_0_rgba(28,37,33,0.04)] p-5 mb-6">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-3">
           Sinkronisasi dari Sevima
         </p>
-        <p className="text-[13px] text-muted mb-3 max-w-lg">
-          Ambil data NIP dan nama pegawai/dosen dari Sevima. Pegawai yang NIP-nya sudah terdaftar
-          tidak akan diubah.
-        </p>
+        <p className="text-[13px] text-muted mb-3">Pembaruan Data dari akun Sevima</p>
         {syncError && <p className="text-[13px] text-red-700 mb-3">{syncError}</p>}
         {syncMessage && <p className="text-[13px] text-cardGreenDark mb-3">{syncMessage}</p>}
         <button
