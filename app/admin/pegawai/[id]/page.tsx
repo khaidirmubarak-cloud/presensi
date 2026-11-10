@@ -261,7 +261,7 @@ export default function PegawaiDetailPage() {
             {form.status === "active" && form.phone_number ? "Terhubung" : "Belum terhubung"}
           </span>
         </div>
-        <p className="text-[12.5px] text-muted mb-4 max-w-xl">
+        <p className="text-[12.5px] text-muted mb-4">
           Pegawai masuk ke dashboard Laporan Kinerja Harian dengan akun SIAKAD atau Google. Nomor
           WhatsApp hanya untuk mengirim LKH lewat WA dan menerima notifikasi — biasanya dihubungkan
           sendiri oleh pegawai lewat &ldquo;Hubungkan WhatsApp&rdquo; di dashboard. Isi di sini untuk
@@ -454,7 +454,7 @@ export default function PegawaiDetailPage() {
 
       <section className="mt-10 rounded-card border border-red-200 bg-red-50/40 p-5">
         <p className="font-mono text-[11px] uppercase tracking-wide text-red-800 mb-2">Hapus pegawai</p>
-        <p className="text-[12.5px] text-muted mb-4 max-w-xl">
+        <p className="text-[12.5px] text-muted mb-4">
           Hanya untuk data salah input atau dobel yang belum punya riwayat. Pegawai yang sudah
           punya laporan kinerja, presensi, cuti, atau perhitungan tunjangan tidak bisa dihapus —
           ubah "Status kepegawaian" menjadi Nonaktif.

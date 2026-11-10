@@ -48,7 +48,7 @@ export default function JamKerjaPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Jam Kerja</h1>
-      <p className="text-[14px] text-muted max-w-lg mb-6">
+      <p className="text-[14px] text-muted mb-6">
         Dipakai untuk menghitung status Terlambat/Pulang Cepat di halaman Presensi. Masa Ramadhan
         ditentukan otomatis dari menu Ramadhan.
       </p>

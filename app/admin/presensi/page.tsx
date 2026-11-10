@@ -195,7 +195,7 @@ export default function PresensiPage() {
 
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Presensi</h1>
-        <p className="mt-1.5 text-[14px] text-muted max-w-lg">
+        <p className="mt-1.5 text-[14px] text-muted">
           Status kehadiran harian dihitung otomatis dibandingkan jam kerja seharusnya. Sumber
           utama data adalah scan mesin fingerprint; share-location WhatsApp cuma dipakai kalau
           hari itu tidak ada data fingerprint. Pegawai shift belum masuk hitungan otomatis.

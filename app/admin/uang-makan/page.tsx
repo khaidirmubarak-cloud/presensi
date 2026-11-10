@@ -171,7 +171,7 @@ export default function UangMakanPage() {
     <div className="mx-auto max-w-5xl px-6 py-14">
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Uang Makan</h1>
-        <p className="mt-1.5 text-[14px] text-muted max-w-lg">
+        <p className="mt-1.5 text-[14px] text-muted">
           Perhitungan uang makan bulanan: jumlah hari hadir (termasuk jenis cuti/izin
           tertentu yang ditandai di menu Jenis Cuti) dikali nominal per golongan, dipotong
           pajak. Hanya pegawai yang ditandai "Berhak uang makan" yang dihitung.

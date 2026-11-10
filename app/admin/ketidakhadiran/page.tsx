@@ -232,7 +232,7 @@ export default function KetidakhadiranPage() {
 
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Ketidakhadiran</h1>
-        <p className="mt-1.5 text-[14px] text-muted max-w-lg">
+        <p className="mt-1.5 text-[14px] text-muted">
           Cuti/izin yang <strong>Disetujui</strong> otomatis mengubah status presensi pegawai
           hari itu jadi "Cuti" (lihat menu Presensi), bukan "Belum Ada Data".
         </p>

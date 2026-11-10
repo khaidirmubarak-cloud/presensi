@@ -156,7 +156,7 @@ export default function LemburPage() {
     <div className="mx-auto max-w-5xl px-6 py-14">
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Lembur</h1>
-        <p className="mt-1.5 text-[14px] text-muted max-w-lg">
+        <p className="mt-1.5 text-[14px] text-muted">
           Catatan kerja lembur pegawai (tanggal, jam, keperluan). Belum ada alur
           persetujuan -- data yang diinput admin langsung tercatat.
         </p>

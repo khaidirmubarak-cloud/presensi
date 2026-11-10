@@ -122,7 +122,7 @@ export default function TugasBelajarPage() {
     <div className="mx-auto max-w-4xl px-6 py-14">
       <header className="mb-8">
         <h1 className="font-display text-[30px] leading-tight text-ink">Tugas Belajar</h1>
-        <p className="mt-1.5 text-[14px] text-muted max-w-lg">
+        <p className="mt-1.5 text-[14px] text-muted">
           Pegawai dengan status aktif TUBE2 dapat potongan tukin flat 50% (menggantikan
           perhitungan harian), TUBE1 dikecualikan total dari potongan.
         </p>

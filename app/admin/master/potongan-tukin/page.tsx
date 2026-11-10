@@ -109,7 +109,7 @@ export default function PotonganTukinPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Potongan Tukin</h1>
-      <p className="text-[14px] text-muted max-w-lg mb-6">
+      <p className="text-[14px] text-muted mb-6">
         Aturan persentase potongan tukin yang dipakai kalkulasi di menu Tukin -- tier
         keterlambatan/pulang cepat berdasarkan menit, dan persentase untuk hari kerja
         tanpa data presensi sama sekali (alpa). Potongan cuti/izin diatur per jenis di
