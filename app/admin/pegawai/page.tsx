@@ -112,7 +112,12 @@ export default function AdminPegawaiPage() {
         return;
       }
 
-      setSyncMessage(`${data.created} pegawai baru ditambahkan, ${data.skipped} sudah terdaftar (dilewati).`);
+      setSyncMessage(
+        `${data.created} pegawai baru ditambahkan, ${data.skipped} sudah terdaftar (dilewati)` +
+          (data.emailsLinked ? `, ${data.emailsLinked} email login (Google) baru dihubungkan` : "") +
+          "." +
+          (data.emailNote ? ` ${data.emailNote}` : ""),
+      );
       loadPegawai();
     } catch {
       setSyncError("Terjadi kesalahan jaringan.");

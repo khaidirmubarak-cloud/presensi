@@ -14,6 +14,8 @@ type SevimaAttributes = {
   id_pegawai: number;
   nip: string;
   nama: string;
+  email?: string | null;
+  email_kampus?: string | null;
 };
 
 type SevimaRecord = {
@@ -30,7 +32,15 @@ type SevimaListResponse = {
 export type SevimaEmployee = {
   nip: string;
   name: string;
+  // Dipakai untuk "Masuk dengan Google" di dashboard-kinerja (tabel employee_login_emails).
+  email: string | null;
+  emailKampus: string | null;
 };
+
+function cleanEmail(v: string | null | undefined): string | null {
+  const e = v?.replace(ZERO_WIDTH_CHARS_RE, "").trim().toLowerCase();
+  return e && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) ? e : null;
+}
 
 // Karakter zero-width yang kadang nyelip di field "nama" Sevima (mis. U+200C sebelum
 // nama), tidak dibuang oleh trim() biasa karena bukan whitespace — daftar eksplisit
@@ -64,7 +74,12 @@ async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee
       const nip = record.attributes?.nip?.trim();
       const name = record.attributes?.nama?.replace(ZERO_WIDTH_CHARS_RE, "").trim();
       if (nip && name) {
-        employees.push({ nip, name });
+        employees.push({
+          nip,
+          name,
+          email: cleanEmail(record.attributes?.email),
+          emailKampus: cleanEmail(record.attributes?.email_kampus),
+        });
       }
     }
 

@@ -55,9 +55,48 @@ export async function POST() {
     }
   }
 
+  // Email dari data Sevima -> employee_login_emails, supaya "Masuk dengan Google" di
+  // dashboard-kinerja langsung mengenali pegawai yang emailnya tercatat di Sevima.
+  // Email yang dipakai lebih dari satu NIP di data Sevima sengaja dilewati (tidak bisa
+  // dipastikan pemiliknya), dan email yang sudah terikat ke pegawai lain tidak ditimpa.
+  let emailsLinked = 0;
+  let emailNote: string | null = null;
+  try {
+    const ownersByEmail = new Map<string, Set<string>>();
+    const candidates: { email: string; nip: string; source: string }[] = [];
+    for (const emp of sevimaEmployees) {
+      for (const [email, source] of [
+        [emp.emailKampus, "sevima_email_kampus"],
+        [emp.email, "sevima_email"],
+      ] as const) {
+        if (!email) continue;
+        candidates.push({ email, nip: emp.nip, source });
+        const owners = ownersByEmail.get(email) ?? new Set<string>();
+        owners.add(emp.nip);
+        ownersByEmail.set(email, owners);
+      }
+    }
+    const idRows = await query<{ id: string; nip: string }>("SELECT id, nip FROM employees WHERE nip IS NOT NULL");
+    const idByNip = new Map(idRows.map((r) => [r.nip, r.id]));
+    for (const c of candidates) {
+      if ((ownersByEmail.get(c.email)?.size ?? 0) > 1) continue;
+      const employeeId = idByNip.get(c.nip);
+      if (!employeeId) continue;
+      const result = await execute(
+        "INSERT IGNORE INTO employee_login_emails (email, employee_id, source) VALUES (?, ?, ?)",
+        [c.email, employeeId, c.source],
+      );
+      emailsLinked += result.affectedRows;
+    }
+  } catch {
+    emailNote = "Email login belum disinkronkan: tabel employee_login_emails belum dibuat (jalankan dashboard-kinerja/sql/003_employee_login_emails.sql).";
+  }
+
   return NextResponse.json({
     total: sevimaEmployees.length,
     created,
     skipped: sevimaEmployees.length - created,
+    emailsLinked,
+    emailNote,
   });
 }
