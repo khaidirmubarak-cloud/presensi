@@ -11,6 +11,7 @@ type Pegawai = {
   department: string | null;
   status: string;
   phone_number: string | null;
+  finger_id: number | null;
   employee_category: string | null;
   employment_status: string | null;
   rank_code: string | null;
@@ -36,6 +37,7 @@ export default function AdminPegawaiPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [fingerFilter, setFingerFilter] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -53,6 +55,7 @@ export default function AdminPegawaiPage() {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (category) params.set("category", category);
+    if (fingerFilter) params.set("finger", fingerFilter);
     params.set("page", String(page));
     params.set("pageSize", String(pageSize));
 
@@ -64,7 +67,7 @@ export default function AdminPegawaiPage() {
         setCategories(d.categories ?? []);
       })
       .finally(() => setLoading(false));
-  }, [debouncedSearch, category, page, pageSize]);
+  }, [debouncedSearch, category, fingerFilter, page, pageSize]);
 
   useEffect(() => {
     loadPegawai();
@@ -222,6 +225,17 @@ export default function AdminPegawaiPage() {
                 </option>
               ))}
             </select>
+            <select
+              value={fingerFilter}
+              onChange={(e) => {
+                setFingerFilter(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+            >
+              <option value="">Semua ID finger</option>
+              <option value="kosong">Tanpa ID finger</option>
+            </select>
             <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
               Tampilkan
               <select
@@ -246,7 +260,7 @@ export default function AdminPegawaiPage() {
           <p className="text-[14px] text-muted">Memuat…</p>
         ) : pegawai.length === 0 ? (
           <p className="text-[14px] text-muted">
-            {debouncedSearch || category ? "Tidak ada pegawai yang cocok." : "Belum ada pegawai."}
+            {debouncedSearch || category || fingerFilter ? "Tidak ada pegawai yang cocok." : "Belum ada pegawai."}
           </p>
         ) : (
           <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
@@ -255,6 +269,7 @@ export default function AdminPegawaiPage() {
                 <tr>
                   <th className="text-left px-4 py-2.5 font-semibold">Nama</th>
                   <th className="text-left px-4 py-2.5 font-semibold">NIP</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">ID Finger</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Kategori</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Golongan</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Unit</th>
@@ -268,6 +283,13 @@ export default function AdminPegawaiPage() {
                   <tr key={p.id} className="border-t border-cardGreenDark/10">
                     <td className="px-4 py-2.5 text-ink">{p.name}</td>
                     <td className="px-4 py-2.5 text-muted">{p.nip ?? "-"}</td>
+                    <td className="px-4 py-2.5">
+                      {p.finger_id !== null ? (
+                        <span className="font-mono text-[12.5px] text-ink">{p.finger_id}</span>
+                      ) : (
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11.5px] font-semibold text-amber-800">Kosong</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-muted">{p.employee_category ?? "-"}</td>
                     <td className="px-4 py-2.5 text-muted">{p.rank_code ?? "-"}</td>
                     <td className="px-4 py-2.5 text-muted">{p.unit_name ?? "-"}</td>

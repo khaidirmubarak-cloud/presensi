@@ -12,6 +12,7 @@ type PegawaiRow = {
   department: string | null;
   status: string;
   phone_number: string | null;
+  finger_id: number | null;
   employee_category: string | null;
   employment_status: string | null;
   rank_code: string | null;
@@ -35,6 +36,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() || "";
   const category = searchParams.get("category")?.trim() || "";
+  // finger=kosong -> hanya pegawai tanpa ID finger (scan mesinnya tidak akan terhitung)
+  const finger = searchParams.get("finger")?.trim() || "";
   const pageSize = ALLOWED_PAGE_SIZES.includes(Number(searchParams.get("pageSize")))
     ? Number(searchParams.get("pageSize"))
     : 50;
@@ -51,6 +54,9 @@ export async function GET(req: NextRequest) {
     conditions.push("p.employee_category = ?");
     whereParams.push(category);
   }
+  if (finger === "kosong") {
+    conditions.push("e.finger_id IS NULL");
+  }
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const countRow = await queryOne<{ total: number }>(
@@ -61,7 +67,7 @@ export async function GET(req: NextRequest) {
 
   const pegawai = await query<PegawaiRow>(
     `SELECT
-       e.id, e.name, e.nip, e.department, e.status, e.phone_number,
+       e.id, e.name, e.nip, e.department, e.status, e.phone_number, e.finger_id,
        p.employee_category, p.employment_status,
        r.code AS rank_code,
        u.name AS unit_name,

@@ -82,6 +82,28 @@ function Field({
   );
 }
 
+type FingerInfo = {
+  fingerId: number;
+  owner: { id: string; name: string; nip: string | null } | null;
+  lastScanAt: string | null;
+  scans30d: number;
+};
+
+function formatScan(iso: string | null): string {
+  if (!iso) return "belum pernah ada scan";
+  return (
+    new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Makassar",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso)) + " WITA"
+  );
+}
+
 const inputClass =
   "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
@@ -104,6 +126,14 @@ export default function PegawaiDetailPage() {
 
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  // ID finger mesin presensi -- disimpan terpisah lewat /api/admin/pegawai/[id]/finger.
+  const [fingerInput, setFingerInput] = useState("");
+  const [fingerInfo, setFingerInfo] = useState<FingerInfo | null>(null);
+  const [fingerCheck, setFingerCheck] = useState<FingerInfo | null>(null);
+  const [fingerBusy, setFingerBusy] = useState<"cek" | "simpan" | null>(null);
+  const [fingerError, setFingerError] = useState("");
+  const [fingerMessage, setFingerMessage] = useState("");
 
   const [ranks, setRanks] = useState<Option[]>([]);
   const [units, setUnits] = useState<Option[]>([]);
@@ -130,6 +160,8 @@ export default function PegawaiDetailPage() {
           retirement_date: toDateInput(p.retirement_date),
         });
         setAkunPhone(p.phone_number ?? "");
+        setFingerInput(pegawaiRes.pegawai.finger_id != null ? String(pegawaiRes.pegawai.finger_id) : "");
+        setFingerInfo(pegawaiRes.fingerInfo ?? null);
         setRanks((golonganRes.ranks ?? []).map((r: any) => ({ id: r.id, label: `${r.id} — ${r.code}` })));
         setUnits((unitRes.units ?? []).map((u: any) => ({ id: u.id, label: u.name })));
         setFunctionalPositions(
@@ -207,6 +239,58 @@ export default function PegawaiDetailPage() {
       setAkunError("Terjadi kesalahan jaringan.");
     } finally {
       setAkunSaving(false);
+    }
+  }
+
+  async function handleCheckFinger() {
+    setFingerError("");
+    setFingerMessage("");
+    setFingerCheck(null);
+    if (!fingerInput.trim()) return;
+    setFingerBusy("cek");
+    try {
+      const res = await fetch(`/api/admin/pegawai/finger-check?finger_id=${encodeURIComponent(fingerInput.trim())}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setFingerError(data.error || "Gagal mengecek ID finger.");
+        return;
+      }
+      setFingerCheck(data.info);
+    } catch {
+      setFingerError("Terjadi kesalahan jaringan.");
+    } finally {
+      setFingerBusy(null);
+    }
+  }
+
+  async function handleSaveFinger(e: React.FormEvent) {
+    e.preventDefault();
+    setFingerError("");
+    setFingerMessage("");
+    setFingerBusy("simpan");
+    try {
+      const res = await fetch(`/api/admin/pegawai/${params.id}/finger`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finger_id: fingerInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFingerError(data.error || "Gagal menyimpan ID finger.");
+        return;
+      }
+      setFingerInfo(data.info ?? null);
+      setFingerCheck(null);
+      setForm((f) => ({ ...f, finger_id: data.finger_id }));
+      setFingerMessage(
+        data.finger_id === null
+          ? "ID finger dikosongkan — scan mesin tidak akan terhitung untuk pegawai ini."
+          : `ID finger ${data.finger_id} tersimpan.`,
+      );
+    } catch {
+      setFingerError("Terjadi kesalahan jaringan.");
+    } finally {
+      setFingerBusy(null);
     }
   }
 
@@ -288,6 +372,76 @@ export default function PegawaiDetailPage() {
         </div>
         {akunError && <p className="mt-3 text-[13px] text-red-700">{akunError}</p>}
         {akunMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{akunMessage}</p>}
+      </form>
+
+      <form onSubmit={handleSaveFinger} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-muted">ID Finger (mesin presensi)</p>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
+              form.finger_id != null ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+            }`}
+          >
+            {form.finger_id != null ? `ID ${form.finger_id}` : "Belum ada ID finger"}
+          </span>
+        </div>
+        <p className="text-[12.5px] text-muted mb-4">
+          Nomor pegawai di mesin fingerprint. Scan mesin hanya terhitung sebagai presensi pegawai ini
+          kalau ID-nya cocok. ID finger berasal dari aplikasi cobakinerja (data Sevima tidak memuat ID
+          finger); pegawai tanpa ID finger tercatat &ldquo;Tanpa Keterangan&rdquo; meski sudah scan.
+        </p>
+        {form.finger_id != null && fingerInfo && (
+          <p className="text-[12.5px] text-ink mb-4">
+            Scan terakhir: <strong>{formatScan(fingerInfo.lastScanAt)}</strong> · {fingerInfo.scans30d} scan dalam 30 hari terakhir
+          </p>
+        )}
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block w-full sm:w-48">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">ID finger</span>
+            <input
+              className={inputClass}
+              value={fingerInput}
+              onChange={(e) => {
+                setFingerInput(e.target.value.replace(/\D/g, ""));
+                setFingerCheck(null);
+              }}
+              placeholder="mis. 575"
+              inputMode="numeric"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={handleCheckFinger}
+            disabled={fingerBusy !== null || !fingerInput.trim()}
+            className="rounded-full border border-cardGreenDark/30 px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          >
+            {fingerBusy === "cek" ? "Mengecek…" : "Cek"}
+          </button>
+          <button
+            type="submit"
+            disabled={fingerBusy !== null}
+            className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          >
+            {fingerBusy === "simpan" ? "Menyimpan…" : fingerInput.trim() ? "Simpan ID finger" : "Kosongkan ID finger"}
+          </button>
+        </div>
+        {fingerCheck && (
+          <div className="mt-3 rounded-2xl bg-pineLight/60 px-4 py-3 text-[12.5px] text-ink space-y-1">
+            <p>
+              <strong>ID {fingerCheck.fingerId}</strong>:{" "}
+              {fingerCheck.owner
+                ? fingerCheck.owner.id === params.id
+                  ? "sudah terpasang di pegawai ini."
+                  : `dipakai ${fingerCheck.owner.name}${fingerCheck.owner.nip ? ` (NIP ${fingerCheck.owner.nip})` : ""}.`
+                : "belum dipakai pegawai mana pun."}
+            </p>
+            <p>
+              Scan terakhir: {formatScan(fingerCheck.lastScanAt)} · {fingerCheck.scans30d} scan dalam 30 hari terakhir
+            </p>
+          </div>
+        )}
+        {fingerError && <p className="mt-3 text-[13px] text-red-700">{fingerError}</p>}
+        {fingerMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{fingerMessage}</p>}
       </form>
 
       <form onSubmit={handleSubmit} className="space-y-6">

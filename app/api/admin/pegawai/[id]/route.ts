@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne, execute } from "../../../../../lib/db";
 import { getSession } from "../../../../../lib/auth";
+import { getFingerInfo } from "../../../../../lib/finger";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ type PegawaiDetail = {
   department: string | null;
   status: string;
   phone_number: string | null;
+  finger_id: number | null;
   legacy_id_user: string | null;
   nip_lama: string | null;
   nidn: string | null;
@@ -51,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const pegawai = await queryOne<PegawaiDetail>(
     `SELECT
-       e.id, e.name, e.nip, e.department, e.status, e.phone_number,
+       e.id, e.name, e.nip, e.department, e.status, e.phone_number, e.finger_id,
        p.legacy_id_user, p.nip_lama, p.nidn, p.bank_account_no, p.npwp,
        p.birth_date, p.photo_url,
        p.rank_id, p.unit_id, p.job_class_id, p.functional_position_id, p.tukin_nonpns_grade_id,
@@ -70,7 +72,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Pegawai tidak ditemukan." }, { status: 404 });
   }
 
-  return NextResponse.json({ pegawai });
+  const fingerInfo = pegawai.finger_id !== null ? await getFingerInfo(pegawai.finger_id) : null;
+  return NextResponse.json({ pegawai, fingerInfo });
 }
 
 // Kolom akun login (phone_number, status) TIDAK ditulis dari sini -- ada endpoint terpisah
