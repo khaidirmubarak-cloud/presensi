@@ -5,10 +5,12 @@ import { normalizePhoneNumber } from "../../../../../../lib/phone";
 
 export const dynamic = "force-dynamic";
 
-// Akun login pegawai (nomor WhatsApp + status klaim) -- dipindah dari dashboard-kinerja
-// (app/api/admin/employees/[id] PATCH) supaya pengelolaan akun terpusat di sini. Sengaja
-// endpoint terpisah dari PATCH profil (../route.ts): kolom akun punya aturan pengaman
-// sendiri dan tidak boleh ikut tertimpa saat admin menyimpan form data kepegawaian.
+// Nomor WhatsApp pegawai untuk mengirim LKH lewat WA (endpoint terpisah dari PATCH profil
+// ../route.ts supaya tidak ikut tertimpa saat admin menyimpan form data kepegawaian).
+// Sejak login dashboard hanya lewat akun SIAKAD/Google, nomor WA BUKAN lagi alat login --
+// pegawai biasanya menghubungkannya sendiri (kartu "Hubungkan WhatsApp" di dashboard-kinerja).
+// Untuk admin: mengisi nomor = langsung aktif (status 'active', webhook menerima laporan dari
+// nomor itu), mengosongkan = nonaktifkan pengiriman LKH lewat WA (status 'pending').
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) {
@@ -26,27 +28,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Nomor WhatsApp tidak valid." }, { status: 400 });
   }
 
-  const existing = await queryOne<{ id: string; name: string; phone_number: string | null; status: string }>(
-    "SELECT id, name, phone_number, status FROM employees WHERE id = ?",
-    [params.id],
-  );
+  const existing = await queryOne<{ id: string }>("SELECT id FROM employees WHERE id = ?", [params.id]);
   if (!existing) {
     return NextResponse.json({ error: "Pegawai tidak ditemukan." }, { status: 404 });
   }
 
-  // Akun yang sudah aktif tidak boleh langsung dipindah ke nomor baru pilihan admin --
-  // itu setara mengambil-alih akun tanpa pegawai bersangkutan membuktikan kepemilikan
-  // nomor itu sendiri. Ubah nomor pada akun aktif = reset ke pending dengan nomor
-  // dikosongkan, supaya pegawai wajib klaim ulang dari awal lewat WA (nomor baru yang
-  // diketik admin sengaja diabaikan, bukan langsung disimpan).
-  let finalPhoneNumber = phoneNumber;
-  let finalStatus = existing.status;
-  const wasReset = existing.status === "active" && phoneNumber !== existing.phone_number;
-
-  if (wasReset) {
-    finalPhoneNumber = null;
-    finalStatus = "pending";
-  } else if (phoneNumber) {
+  if (phoneNumber) {
     const phoneTaken = await queryOne<{ id: string }>(
       "SELECT id FROM employees WHERE phone_number = ? AND id != ?",
       [phoneNumber, params.id],
@@ -56,18 +43,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
+  const status = phoneNumber ? "active" : "pending";
   try {
-    await execute("UPDATE employees SET phone_number = ?, status = ? WHERE id = ?", [
-      finalPhoneNumber,
-      finalStatus,
-      params.id,
-    ]);
+    await execute("UPDATE employees SET phone_number = ?, status = ? WHERE id = ?", [phoneNumber, status, params.id]);
   } catch {
-    return NextResponse.json({ error: "Gagal memperbarui akun pegawai." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memperbarui nomor WhatsApp pegawai." }, { status: 500 });
   }
 
-  return NextResponse.json({
-    akun: { phone_number: finalPhoneNumber, status: finalStatus },
-    reset: wasReset,
-  });
+  return NextResponse.json({ akun: { phone_number: phoneNumber, status }, reset: false });
 }

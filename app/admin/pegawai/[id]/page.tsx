@@ -182,16 +182,6 @@ export default function PegawaiDetailPage() {
     setAkunError("");
     setAkunMessage("");
 
-    if (
-      form.status === "active" &&
-      akunPhone.trim() !== (form.phone_number ?? "") &&
-      !confirm(
-        "Akun ini sudah aktif. Mengubah nomor WhatsApp akan MERESET akun ke Pending dan mengosongkan nomornya — pegawai wajib klaim akun ulang lewat WhatsApp. Lanjutkan?",
-      )
-    ) {
-      return;
-    }
-
     setAkunSaving(true);
     try {
       const res = await fetch(`/api/admin/pegawai/${params.id}/akun`, {
@@ -209,9 +199,9 @@ export default function PegawaiDetailPage() {
       setForm((f) => ({ ...f, phone_number: data.akun.phone_number, status: data.akun.status }));
       setAkunPhone(data.akun.phone_number ?? "");
       setAkunMessage(
-        data.reset
-          ? "Akun direset ke Pending dan nomor dikosongkan. Pegawai wajib klaim ulang lewat halaman Klaim Akun di dashboard Laporan Kinerja Harian."
-          : "Akun tersimpan.",
+        data.akun.phone_number
+          ? "Nomor WhatsApp tersimpan dan aktif untuk mengirim LKH."
+          : "Nomor WhatsApp dikosongkan — pegawai tidak bisa mengirim LKH lewat WhatsApp sampai nomor dihubungkan lagi.",
       );
     } catch {
       setAkunError("Terjadi kesalahan jaringan.");
@@ -262,20 +252,20 @@ export default function PegawaiDetailPage() {
 
       <form onSubmit={handleSaveAkun} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-muted">Akun login</p>
+          <p className="font-mono text-[11px] uppercase tracking-wide text-muted">WhatsApp LKH</p>
           <span
             className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
               form.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
             }`}
           >
-            {form.status === "active" ? "Aktif" : "Pending — belum klaim akun"}
+            {form.status === "active" && form.phone_number ? "Terhubung" : "Belum terhubung"}
           </span>
         </div>
         <p className="text-[12.5px] text-muted mb-4 max-w-xl">
-          Nomor WhatsApp dipakai pegawai untuk login, mengirim laporan kinerja harian, dan menerima
-          notifikasi. Pegawai berstatus Pending mengaktifkan akunnya sendiri lewat "Klaim akun" di
-          dashboard Laporan Kinerja Harian. Mengubah nomor pada akun yang sudah aktif akan mereset
-          akun ke Pending.
+          Pegawai masuk ke dashboard Laporan Kinerja Harian dengan akun SIAKAD atau Google. Nomor
+          WhatsApp hanya untuk mengirim LKH lewat WA dan menerima notifikasi — biasanya dihubungkan
+          sendiri oleh pegawai lewat &ldquo;Hubungkan WhatsApp&rdquo; di dashboard. Isi di sini untuk
+          membantu pegawai; nomor yang disimpan langsung aktif.
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block w-full sm:w-72">
@@ -293,7 +283,7 @@ export default function PegawaiDetailPage() {
             disabled={akunSaving}
             className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
           >
-            {akunSaving ? "Menyimpan…" : "Simpan akun"}
+            {akunSaving ? "Menyimpan…" : "Simpan nomor"}
           </button>
         </div>
         {akunError && <p className="mt-3 text-[13px] text-red-700">{akunError}</p>}

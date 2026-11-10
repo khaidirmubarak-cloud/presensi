@@ -136,8 +136,8 @@ export default function AdminPegawaiPage() {
         <p className="mt-1.5 text-[14px] text-muted max-w-lg">
           Pusat pengelolaan pegawai dan akun login. Tambahkan pegawai baru (nama + NIP) atau
           sinkronkan dari Sevima, lalu lengkapi golongan/unit/jabatan dan nomor WhatsApp lewat
-          halaman detail. Pegawai mengaktifkan akunnya sendiri lewat "Klaim akun" di dashboard
-          Laporan Kinerja Harian.
+          halaman detail. Pegawai masuk ke dashboard Laporan Kinerja Harian dengan akun SIAKAD atau
+          Google, lalu menghubungkan WhatsApp-nya sendiri dari sana.
         </p>
       </header>
 
@@ -268,7 +268,7 @@ export default function AdminPegawaiPage() {
                   <th className="text-left px-4 py-2.5 font-semibold">Golongan</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Unit</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Status</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">Akun Login</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">WhatsApp</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Aksi</th>
                 </tr>
               </thead>
@@ -294,10 +294,10 @@ export default function AdminPegawaiPage() {
                     <td className="px-4 py-2.5">
                       <span
                         className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
-                          p.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                          p.status === "active" && p.phone_number ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
                         }`}
                       >
-                        {p.status === "active" ? "Aktif" : "Pending"}
+                        {p.status === "active" && p.phone_number ? "Terhubung" : "Belum"}
                       </span>
                       {p.phone_number ? <span className="block mt-1 text-[11.5px] text-muted">{p.phone_number}</span> : null}
                     </td>
