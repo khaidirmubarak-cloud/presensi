@@ -87,7 +87,10 @@ async function main() {
   for (const e of employees) {
     for (const raw of [e.nip, e.nidn, e.nip_lama]) {
       const key = cleanNip(raw).toLowerCase();
-      if (key.length < 8) continue; // abaikan isian pendek/sampah yang bisa salah menyambung
+      // Abaikan isian kosong/sampah (mis. "0", "000") yang bisa salah menyambung. Nomor pendek
+      // tetap dipakai: Sevima mencatat sebagian pegawai non-ASN dengan nomor 3 digit (mis. 594),
+      // yang dihubungkan admin lewat NIDN/NIP lama di baris cobakinerja.
+      if (key.length < 3 || /^0+$/.test(key)) continue;
       const other = ownerOfKey.get(key);
       if (other) parent.set(find(e.id), find(other));
       else ownerOfKey.set(key, e.id);

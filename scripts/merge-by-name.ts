@@ -71,7 +71,8 @@ async function main() {
       let reason = "";
       if (g.coba.length > 1) reason = `nama sama dengan ${g.coba.length} baris cobakinerja`;
       else if (g.other.length > 1) reason = `nama sama dengan ${g.other.length} baris Sevima/manual`;
-      else if (keeper!.nidn && cleanNip(keeper!.nidn) !== cleanNip(donor.nip)) reason = `NIDN cobakinerja ${keeper!.nidn} berbeda`;
+      else if (keeper!.nidn && !is18(donor.nip) && cleanNip(keeper!.nidn) !== cleanNip(donor.nip))
+        reason = `NIDN cobakinerja ${keeper!.nidn} berbeda`;
       else if (is18(donor.nip) && is18(keeper!.nip) && cleanNip(donor.nip) !== cleanNip(keeper!.nip)) reason = "dua NIP 18 digit berbeda";
       const data = (await countReferences(db, fks, donor.id)).join(", ") || "-";
       pairs.push({ donor, keeper, candidates: g.coba, status: reason ? "MANUAL" : "OTOMATIS", reason, data });
