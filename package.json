@@ -16,7 +16,8 @@
     "migrate:uang-makan": "tsx scripts/migrate-uang-makan-from-cobakinerja.ts",
     "migrate:gaji-pokok": "tsx scripts/migrate-gaji-pokok-from-cobakinerja.ts",
     "fix:pegawai-ganda": "tsx scripts/merge-duplicate-employees.ts",
-    "fix:hapus-dosen-lb": "tsx scripts/remove-excluded-employees.ts"
+    "fix:hapus-dosen-lb": "tsx scripts/remove-excluded-employees.ts",
+    "fix:pegawai-ganda-nama": "tsx scripts/merge-by-name.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",

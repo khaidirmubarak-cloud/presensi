@@ -21,12 +21,9 @@
 
 import mysql from "mysql2/promise";
 import { cleanNip } from "../lib/nip";
+import { loadEmployeeFks, countReferences, mergeDonorsInto, normPersonName } from "./lib-merge-employees";
 
 const APPLY = process.argv.includes("--apply");
-
-// Tabel hasil perhitungan yang boleh dihapus (bisa dihitung ulang lewat tombol Hitung) kalau
-// barisnya bentrok unik saat dipindah (mis. tukin_calculations employee_id+period).
-const RECALCULABLE = new Set(["tukin_calculations", "meal_allowance_calculations"]);
 
 type Emp = {
   id: string;
@@ -41,7 +38,6 @@ type Emp = {
   nidn: string | null;
   nip_lama: string | null;
 };
-type Fk = { table: string; column: string; deleteRule: string };
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -66,15 +62,7 @@ async function main() {
 
   console.log(APPLY ? "=== MODE APPLY: database AKAN diubah ===" : "=== DRY RUN: tidak ada yang diubah ===");
 
-  const [fkRows] = await db.query<any[]>(
-    `SELECT k.TABLE_NAME AS t, k.COLUMN_NAME AS c, r.DELETE_RULE AS d
-     FROM information_schema.KEY_COLUMN_USAGE k
-     JOIN information_schema.REFERENTIAL_CONSTRAINTS r
-       ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
-     WHERE k.REFERENCED_TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME = 'employees'
-       AND k.REFERENCED_COLUMN_NAME = 'id'`,
-  );
-  const fks: Fk[] = fkRows.map((r) => ({ table: r.t, column: r.c, deleteRule: r.d }));
+  const fks = await loadEmployeeFks(db);
   console.log(`Tabel yang merujuk pegawai: ${fks.map((f) => `${f.table}.${f.column}`).join(", ")}\n`);
 
   const [empRows] = await db.query<any[]>(
@@ -147,11 +135,7 @@ async function main() {
     console.log(`\nNIP ${key}`);
     console.log(`  PERTAHANKAN: ${label(keeper)}`);
     for (const d of donors) {
-      const counts: string[] = [];
-      for (const fk of fks) {
-        const [[c]] = await db.query<any[]>(`SELECT COUNT(*) AS n FROM \`${fk.table}\` WHERE \`${fk.column}\` = ?`, [d.id]);
-        if (Number(c.n) > 0) counts.push(`${fk.table} ${c.n}`);
-      }
+      const counts = await countReferences(db, fks, d.id);
       console.log(`  GABUNG+HAPUS: ${label(d)}`);
       console.log(`      data yang dipindah: ${counts.length ? counts.join(", ") : "(tidak ada)"}`);
       if (d.phone_number && keeper.phone_number && d.phone_number !== keeper.phone_number) {
@@ -166,49 +150,7 @@ async function main() {
 
     await db.beginTransaction();
     try {
-      for (const d of donors) {
-        // Pindahkan semua rujukan. UPDATE IGNORE: baris yang bentrok unik dibiarkan di donor,
-        // lalu ditangani di bawah (dihapus bila tabel hasil hitung, selain itu batal).
-        for (const fk of fks) {
-          await db.query(`UPDATE IGNORE \`${fk.table}\` SET \`${fk.column}\` = ? WHERE \`${fk.column}\` = ?`, [keeper.id, d.id]);
-          if (fk.deleteRule === "CASCADE" || fk.deleteRule === "SET NULL") continue;
-          const [[left]] = await db.query<any[]>(`SELECT COUNT(*) AS n FROM \`${fk.table}\` WHERE \`${fk.column}\` = ?`, [d.id]);
-          if (Number(left.n) === 0) continue;
-          if (!RECALCULABLE.has(fk.table)) {
-            throw new Error(`${left.n} baris ${fk.table} milik ${d.name} bentrok dan tidak bisa dipindah otomatis`);
-          }
-          await db.query(`DELETE FROM \`${fk.table}\` WHERE \`${fk.column}\` = ?`, [d.id]);
-        }
-
-        // Kolom unik di employees: lepas dari donor dulu, baru pasang ke baris yang dipertahankan.
-        const setKeeper: string[] = [];
-        const params: any[] = [];
-        if (!keeper.finger_id && d.finger_id) {
-          await db.query("UPDATE employees SET finger_id = NULL WHERE id = ?", [d.id]);
-          setKeeper.push("finger_id = ?");
-          params.push(d.finger_id);
-          keeper.finger_id = d.finger_id;
-        }
-        if (!keeper.phone_number && d.phone_number) {
-          await db.query("UPDATE employees SET phone_number = NULL WHERE id = ?", [d.id]);
-          setKeeper.push("phone_number = ?", "status = ?");
-          params.push(d.phone_number, d.status);
-          keeper.phone_number = d.phone_number;
-        }
-        if (d.role === "admin" && keeper.role !== "admin") {
-          setKeeper.push("role = 'admin'");
-          keeper.role = "admin";
-        }
-        if (!keeper.department && d.department) {
-          setKeeper.push("department = ?");
-          params.push(d.department);
-        }
-        if (setKeeper.length) {
-          await db.query(`UPDATE employees SET ${setKeeper.join(", ")} WHERE id = ?`, [...params, keeper.id]);
-        }
-
-        await db.query("DELETE FROM employees WHERE id = ?", [d.id]);
-      }
+      await mergeDonorsInto(db, fks, keeper, donors);
       await db.query("UPDATE employees SET nip = ? WHERE id = ?", [cleanNip(keeper.nip), keeper.id]);
       await db.commit();
       merged++;
@@ -269,12 +211,7 @@ async function main() {
   // ---------------------------------------------------------------- 4. Kemungkinan ganda (nama)
   // Baris Sevima/manual yang tidak tersambung lewat NIP/NIDN, tapi namanya (tanpa gelar) sama
   // dengan baris cobakinerja -- mis. NIDN di cobakinerja kosong. HANYA dilaporkan, tidak digabung.
-  const normName = (n: string) =>
-    n
-      .split(",")[0]
-      .replace(/\b(prof|dr|drs|dra|ir|h|hj|st|andi)\b\.?/gi, (m) => (/^(andi|st)$/i.test(m.replace(".", "")) ? m : ""))
-      .toLowerCase()
-      .replace(/[^a-z]/g, "");
+  const normName = normPersonName;
   const [currentRows] = await db.query<any[]>(
     `SELECT e.id, e.name, e.nip, p.legacy_id_user, p.nidn
      FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id`,

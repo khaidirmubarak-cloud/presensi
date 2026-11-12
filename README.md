@@ -286,6 +286,14 @@ kosong) muncul di bagian **"Kemungkinan ganda berdasarkan nama"** — tidak diga
 menggabungkannya: isi **NIDN** di detail pegawai cobakinerja (sama dengan NIP baris Sevima), lalu
 jalankan `fix:pegawai-ganda` lagi.
 
+Karena NIDN di profil cobakinerja umumnya kosong, sebagian besar pasangan dosen hanya bisa
+dikenali lewat nama. `npm run fix:pegawai-ganda-nama` (dry run; `-- --csv=/tmp/daftar.csv` untuk
+daftar lengkap di spreadsheet; `-- --apply` untuk eksekusi) menggabungkan otomatis HANYA pasangan
+yang aman: nama (tanpa gelar) cocok dengan tepat satu baris cobakinerja dan sebaliknya, NIDN
+cobakinerja kosong/sama, dan bukan dua NIP 18 digit berbeda. NIDN dari baris Sevima disimpan ke
+profil cobakinerja supaya sync berikutnya langsung cocok. Sisanya dilaporkan MANUAL beserta
+kandidatnya (isi NIDN di detail pegawai yang benar, lalu `fix:pegawai-ganda`).
+
 ## 6. Dosen kontrak / LB tidak dikelola (`npm run fix:hapus-dosen-lb`)
 
 Dosen kontrak/luar biasa di Sevima memakai NIP berawalan `LB` (±429 dari 716 data `/dosen`). Mereka
