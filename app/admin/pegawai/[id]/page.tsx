@@ -82,6 +82,15 @@ function Field({
   );
 }
 
+type LoginEmail = { email: string; source: string; createdAt: string | null; lastLoginAt: string | null };
+
+const EMAIL_SOURCE_LABEL: Record<string, string> = {
+  sevima_login: "Login SIAKAD",
+  sevima_email: "Sevima (email)",
+  sevima_email_kampus: "Sevima (email kampus)",
+  admin: "Ditambah admin",
+};
+
 type FingerInfo = {
   fingerId: number;
   owner: { id: string; name: string; nip: string | null } | null;
@@ -134,6 +143,20 @@ export default function PegawaiDetailPage() {
   const [fingerBusy, setFingerBusy] = useState<"cek" | "simpan" | null>(null);
   const [fingerError, setFingerError] = useState("");
   const [fingerMessage, setFingerMessage] = useState("");
+
+  // Email login (Masuk dengan Google / SIAKAD di dashboard Laporan Kinerja Harian).
+  const [loginEmails, setLoginEmails] = useState<LoginEmail[]>([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/admin/pegawai/${params.id}/emails`)
+      .then((r) => r.json())
+      .then((d) => setLoginEmails(d.emails ?? []))
+      .catch(() => setEmailError("Gagal memuat email login."));
+  }, [params.id]);
 
   const [ranks, setRanks] = useState<Option[]>([]);
   const [units, setUnits] = useState<Option[]>([]);
@@ -294,6 +317,53 @@ export default function PegawaiDetailPage() {
     }
   }
 
+  async function handleAddEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailError("");
+    setEmailMessage("");
+    setEmailBusy(true);
+    try {
+      const res = await fetch(`/api/admin/pegawai/${params.id}/emails`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailError(data.error || "Gagal menambah email.");
+        return;
+      }
+      setLoginEmails(data.emails ?? []);
+      setEmailMessage(`${newEmail.trim().toLowerCase()} ditambahkan — pegawai bisa langsung Masuk dengan Google memakai email ini.`);
+      setNewEmail("");
+    } catch {
+      setEmailError("Terjadi kesalahan jaringan.");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function handleRemoveEmail(email: string) {
+    if (!confirm(`Hapus email login ${email}? Pegawai tidak bisa lagi Masuk dengan Google memakai email ini.`)) return;
+    setEmailError("");
+    setEmailMessage("");
+    setEmailBusy(true);
+    try {
+      const res = await fetch(`/api/admin/pegawai/${params.id}/emails?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailError(data.error || "Gagal menghapus email.");
+        return;
+      }
+      setLoginEmails(data.emails ?? []);
+      setEmailMessage(`${email} dihapus.`);
+    } catch {
+      setEmailError("Terjadi kesalahan jaringan.");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
   async function handleDelete() {
     setDeleteError("");
     if (!confirm(`Hapus data pegawai "${form.name}" secara permanen? Tindakan ini tidak bisa dibatalkan.`)) return;
@@ -442,6 +512,73 @@ export default function PegawaiDetailPage() {
         )}
         {fingerError && <p className="mt-3 text-[13px] text-red-700">{fingerError}</p>}
         {fingerMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{fingerMessage}</p>}
+      </form>
+
+      <form onSubmit={handleAddEmail} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-muted">Email login</p>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
+              loginEmails.length > 0 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+            }`}
+          >
+            {loginEmails.length > 0 ? `${loginEmails.length} email` : "Belum ada email"}
+          </span>
+        </div>
+        <p className="text-[12.5px] text-muted mb-4">
+          Email yang bisa dipakai pegawai untuk &ldquo;Masuk dengan Google&rdquo; di dashboard Laporan Kinerja
+          Harian. Terisi otomatis dari data Sevima dan dari login akun SIAKAD; tambahkan manual bila email
+          Google pegawai belum tercatat.
+        </p>
+
+        {loginEmails.length > 0 && (
+          <ul className="mb-4 divide-y divide-cardGreenDark/10 rounded-2xl border border-cardGreenDark/15">
+            {loginEmails.map((le) => (
+              <li key={le.email} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[13.5px] text-ink break-all">{le.email}</p>
+                  <p className="text-[11.5px] text-muted">
+                    {EMAIL_SOURCE_LABEL[le.source] ?? le.source}
+                    {" · "}
+                    {le.lastLoginAt ? `terakhir masuk ${formatScan(le.lastLoginAt)}` : "belum pernah dipakai masuk"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveEmail(le.email)}
+                  disabled={emailBusy}
+                  className="rounded-full border border-red-300 px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 transition-colors disabled:opacity-60"
+                >
+                  Hapus
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block w-full sm:w-80">
+            <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Tambah email</span>
+            <input
+              type="email"
+              className={inputClass}
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="nama@gmail.com atau nama@uinpalopo.ac.id"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={emailBusy || !newEmail.trim()}
+            className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          >
+            {emailBusy ? "Menyimpan…" : "Tambah email"}
+          </button>
+        </div>
+        {emailError && <p className="mt-3 text-[13px] text-red-700">{emailError}</p>}
+        {emailMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{emailMessage}</p>}
       </form>
 
       <form onSubmit={handleSubmit} className="space-y-6">
