@@ -17,7 +17,7 @@
 //   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 
 import mysql from "mysql2/promise";
-import { cleanNip, cleanNipSql } from "../lib/nip";
+import { cleanName, cleanNip, cleanNipSql } from "../lib/nip";
 import { randomUUID } from "node:crypto";
 
 function requireEnv(name: string): string {
@@ -226,7 +226,7 @@ async function migrateEmployees(source: mysql.Connection, target: mysql.Connecti
       const fingerId = resolveFingerId(u.id_user, u.id_finger, null);
       await target.execute(
         "INSERT INTO employees (id, name, nip, department, status, role, finger_id) VALUES (?, ?, ?, ?, 'pending', 'pegawai', ?)",
-        [employeeId, u.nama_lengkap, nip, normalizeStr(u.jabatan), fingerId],
+        [employeeId, cleanName(u.nama_lengkap), nip, normalizeStr(u.jabatan), fingerId],
       );
     }
 

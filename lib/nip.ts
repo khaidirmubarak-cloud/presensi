@@ -12,3 +12,13 @@ export function cleanNip(v: unknown): string {
 export function cleanNipSql(column: string): string {
   return `LOWER(REGEXP_REPLACE(COALESCE(${column}, ''), '[^0-9A-Za-z]', ''))`;
 }
+
+// Pembersih nama pegawai: buang karakter tak terlihat (U+200B–U+200D, U+FEFF) beserta sisa
+// encoding rusaknya ("â€Œ", "â€‹") yang terbawa dari cobakinerja, rapikan spasi ganda, dan
+// buang spasi di awal/akhir (mis. " Inal, S.Pd.,M.Pd.").
+export function cleanName(v: unknown): string {
+  return String(v ?? "")
+    .replace(/â€Œ|â€‹|[​-‍﻿]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
