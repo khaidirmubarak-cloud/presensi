@@ -38,5 +38,8 @@
   },
   "devDependencies": {
     "tsx": "^4.23.12"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "^0.28.2"
   }
 }
