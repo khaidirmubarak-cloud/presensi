@@ -8,6 +8,17 @@ export function cleanNip(v: unknown): string {
   return String(v ?? "").replace(/[^0-9A-Za-z]/g, "");
 }
 
+// Dosen kontrak / luar biasa (NIP Sevima berawalan "LB", mis. LB0123) tidak termasuk pegawai
+// yang dikelola sistem ini -- tidak diperhitungkan di presensi, tunjangan kinerja, maupun uang
+// makan, dan tidak memakai LKH. Tidak diimpor dari Sevima (lib/sevima.ts); baris lama
+// dibersihkan dengan `npm run fix:hapus-dosen-lb`.
+export const EXCLUDED_NIP_PREFIXES = ["LB"];
+
+export function isExcludedNip(nip: unknown): boolean {
+  const clean = cleanNip(nip).toUpperCase();
+  return EXCLUDED_NIP_PREFIXES.some((p) => clean.startsWith(p));
+}
+
 // Padanan cleanNip untuk dipakai di SQL (MariaDB 10.0.5+), dibandingkan tanpa beda huruf besar/kecil.
 export function cleanNipSql(column: string): string {
   return `LOWER(REGEXP_REPLACE(COALESCE(${column}, ''), '[^0-9A-Za-z]', ''))`;

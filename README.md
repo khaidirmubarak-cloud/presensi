@@ -277,6 +277,22 @@ presensi WA, RHK, email login, kode WA, cuti, dst.) dipindah, ID finger & nomor 
 baris cobakinerja belum punya, lalu baris lain dihapus — satu transaksi per kelompok. Kelompok
 lain dilaporkan untuk dicek manual. Aman dijalankan ulang. Setelah itu, tekan "Sync dari Sevima".
 
+## 6. Dosen kontrak / LB tidak dikelola (`npm run fix:hapus-dosen-lb`)
+
+Dosen kontrak/luar biasa di Sevima memakai NIP berawalan `LB` (±429 dari 716 data `/dosen`). Mereka
+tidak diperhitungkan di presensi, tunjangan kinerja, maupun uang makan, dan tidak memakai LKH.
+`EXCLUDED_NIP_PREFIXES` di `lib/nip.ts` membuat sync Sevima melewati NIP tersebut (termasuk email
+loginnya). Baris LB yang terlanjur diimpor dibersihkan dengan script (dry run dulu, env `DB_*`
+seperti §5):
+```bash
+npm run fix:hapus-dosen-lb              # DRY RUN
+npm run fix:hapus-dosen-lb -- --apply   # eksekusi, setelah backup
+```
+Baris LB tanpa data apa pun (dan bukan dari cobakinerja) dihapus; yang punya laporan/presensi/RHK/
+cuti/tukin atau berasal dari cobakinerja dijadikan **Nonaktif** (keluar dari presensi, tukin, uang
+makan, dan tidak bisa login LKH) supaya riwayatnya tidak kehilangan pemilik. Akun admin tidak
+disentuh.
+
 ## Catatan penting
 
 - Kolom akun login di `employees` (`phone_number`, `status`) hanya ditulis lewat endpoint

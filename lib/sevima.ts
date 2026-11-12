@@ -1,4 +1,4 @@
-import { cleanNip } from "./nip";
+import { cleanNip, isExcludedNip } from "./nip";
 
 // Client untuk API Sevima Siakad Cloud, dipakai admin untuk sinkronisasi data pegawai
 // awal ke tabel employees (lihat app/api/admin/pegawai/sync-sevima/route.ts). Dipindah
@@ -101,6 +101,8 @@ export async function fetchSevimaEmployees(): Promise<SevimaEmployee[]> {
   // juga tercatat sebagai pegawai struktural) — data /dosen menang kalau bentrok.
   const byNip = new Map<string, SevimaEmployee>();
   for (const emp of [...pegawai, ...dosen]) {
+    // Dosen kontrak/LB (NIP "LB…") tidak dikelola di sistem ini -- lihat lib/nip.ts.
+    if (isExcludedNip(emp.nip)) continue;
     byNip.set(emp.nip, emp);
   }
 
