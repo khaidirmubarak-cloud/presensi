@@ -256,6 +256,27 @@ dashboard-kinerja, yang sekarang khusus dashboard laporan kinerja harian:
   pemiliknya) atau data lain yang ber-FK (cuti, tukin, uang makan, RHK). Pegawai yang
   berhenti/pindah cukup diset Nonaktif.
 
+## 5. Pegawai ganda & NIP kotor (`npm run fix:pegawai-ganda`)
+
+NIP dari cobakinerja ada yang membawa karakter tak terlihat / encoding rusak (mis. `â€Œ1987…`,
+sisa U+200C yang tersimpan dobel-encode). Sync Sevima dulu mencocokkan NIP secara persis, sehingga
+pegawai yang sama dibuatkan baris kedua tanpa data kepegawaian. Sejak `lib/nip.ts`, NIP selalu
+dibersihkan (hanya huruf & angka) di sync Sevima (juga cocok lewat NIDN/NIP lama), tambah/edit
+pegawai, migrasi cobakinerja, dan login SIAKAD/Google di dashboard-kinerja.
+
+Untuk membereskan data yang sudah terlanjur ganda, jalankan dari laptop dengan env `DB_*` ke
+database produksi (tunnel seperti §2b):
+```bash
+ssh lkh-cpanel '~/apps/kinerja/scripts/backup.sh'   # backup dulu
+npm run fix:pegawai-ganda              # DRY RUN: laporan saja, tidak mengubah apa pun
+npm run fix:pegawai-ganda -- --apply   # eksekusi setelah daftar dry run diperiksa
+```
+Setiap kelompok NIP ganda dengan tepat satu baris cobakinerja: baris cobakinerja dipertahankan,
+semua data yang merujuk ke baris lain (tabel dideteksi otomatis dari foreign key: laporan,
+presensi WA, RHK, email login, kode WA, cuti, dst.) dipindah, ID finger & nomor WA dipindah bila
+baris cobakinerja belum punya, lalu baris lain dihapus — satu transaksi per kelompok. Kelompok
+lain dilaporkan untuk dicek manual. Aman dijalankan ulang. Setelah itu, tekan "Sync dari Sevima".
+
 ## Catatan penting
 
 - Kolom akun login di `employees` (`phone_number`, `status`) hanya ditulis lewat endpoint

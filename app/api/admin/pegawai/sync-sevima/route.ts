@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { query, execute } from "../../../../../lib/db";
 import { getSession } from "../../../../../lib/auth";
 import { fetchSevimaEmployees } from "../../../../../lib/sevima";
+import { cleanNip } from "../../../../../lib/nip";
 
 export const dynamic = "force-dynamic";
 
@@ -37,18 +38,36 @@ export async function POST() {
     );
   }
 
-  const existingRows = await query<{ nip: string }>("SELECT nip FROM employees WHERE nip IS NOT NULL");
-  const existingNips = new Set(existingRows.map((r) => r.nip));
+  // Pegawai dikenali lewat NIP yang sudah DIBERSIHKAN (lib/nip.ts), juga lewat NIDN / NIP lama
+  // di employee_profiles -- supaya NIP dengan spasi/karakter tak terlihat/encoding rusak dari
+  // cobakinerja, atau dosen yang di Sevima tercatat dengan NIDN, tidak dibuatkan baris ganda.
+  const idRows = await query<{ id: string; nip: string | null; nidn: string | null; nip_lama: string | null }>(
+    `SELECT e.id, e.nip, p.nidn, p.nip_lama FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id`,
+  );
+  const idByCleanNip = new Map<string, string>();
+  for (const r of idRows) {
+    for (const v of [r.nip, r.nidn, r.nip_lama]) {
+      const key = cleanNip(v).toLowerCase();
+      if (key && !idByCleanNip.has(key)) idByCleanNip.set(key, r.id);
+    }
+  }
+  // NIP employees diutamakan di atas NIDN/NIP lama kalau ada tumpang tindih.
+  for (const r of idRows) {
+    const key = cleanNip(r.nip).toLowerCase();
+    if (key) idByCleanNip.set(key, r.id);
+  }
 
-  const toInsert = sevimaEmployees.filter((e) => !existingNips.has(e.nip));
+  const toInsert = sevimaEmployees.filter((e) => !idByCleanNip.has(e.nip.toLowerCase()));
 
   let created = 0;
   for (const emp of toInsert) {
     try {
+      const newId = randomUUID();
       await execute(
         "INSERT INTO employees (id, name, nip, status, role) VALUES (?, ?, ?, 'pending', 'pegawai')",
-        [randomUUID(), emp.name, emp.nip],
+        [newId, emp.name, emp.nip],
       );
+      idByCleanNip.set(emp.nip.toLowerCase(), newId);
       created++;
     } catch {
       // NIP duplikat antar-request bersamaan atau data tidak valid -- lewati, lanjut ke berikutnya.
@@ -76,11 +95,9 @@ export async function POST() {
         ownersByEmail.set(email, owners);
       }
     }
-    const idRows = await query<{ id: string; nip: string }>("SELECT id, nip FROM employees WHERE nip IS NOT NULL");
-    const idByNip = new Map(idRows.map((r) => [r.nip, r.id]));
     for (const c of candidates) {
       if ((ownersByEmail.get(c.email)?.size ?? 0) > 1) continue;
-      const employeeId = idByNip.get(c.nip);
+      const employeeId = idByCleanNip.get(c.nip.toLowerCase());
       if (!employeeId) continue;
       const result = await execute(
         "INSERT IGNORE INTO employee_login_emails (email, employee_id, source) VALUES (?, ?, ?)",

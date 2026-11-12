@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { query, queryOne, execute } from "../../../../lib/db";
 import { getSession } from "../../../../lib/auth";
+import { cleanNip, cleanNipSql } from "../../../../lib/nip";
 
 export const dynamic = "force-dynamic";
 
@@ -104,13 +105,15 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
-  const nip = typeof body?.nip === "string" ? body.nip.trim() : "";
+  const nip = cleanNip(body?.nip);
 
   if (!name || !nip) {
     return NextResponse.json({ error: "Nama lengkap dan NIP wajib diisi." }, { status: 400 });
   }
 
-  const existing = await queryOne<{ id: string }>("SELECT id FROM employees WHERE nip = ?", [nip]);
+  const existing = await queryOne<{ id: string }>(`SELECT id FROM employees WHERE ${cleanNipSql("nip")} = ?`, [
+    nip.toLowerCase(),
+  ]);
   if (existing) {
     return NextResponse.json({ error: "NIP ini sudah terdaftar." }, { status: 409 });
   }

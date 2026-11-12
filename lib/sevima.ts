@@ -1,3 +1,5 @@
+import { cleanNip } from "./nip";
+
 // Client untuk API Sevima Siakad Cloud, dipakai admin untuk sinkronisasi data pegawai
 // awal ke tabel employees (lihat app/api/admin/pegawai/sync-sevima/route.ts). Dipindah
 // dari dashboard-kinerja -- pengelolaan akun pegawai sekarang terpusat di aplikasi ini.
@@ -71,7 +73,7 @@ async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee
     const body: SevimaListResponse = await res.json();
 
     for (const record of body.data ?? []) {
-      const nip = record.attributes?.nip?.trim();
+      const nip = cleanNip(record.attributes?.nip);
       const name = record.attributes?.nama?.replace(ZERO_WIDTH_CHARS_RE, "").trim();
       if (nip && name) {
         employees.push({

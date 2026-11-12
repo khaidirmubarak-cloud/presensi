@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { queryOne, execute } from "../../../../../lib/db";
 import { getSession } from "../../../../../lib/auth";
 import { getFingerInfo } from "../../../../../lib/finger";
+import { cleanNip, cleanNipSql } from "../../../../../lib/nip";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const name = typeof body.name === "string" ? body.name.trim() : "";
-  const nip = typeof body.nip === "string" ? body.nip.trim() : "";
+  const nip = cleanNip(body.nip);
   const department = typeof body.department === "string" ? body.department.trim() : "";
 
   if (!name || !nip) {
@@ -110,8 +111,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const nipTaken = await queryOne<{ id: string }>(
-    "SELECT id FROM employees WHERE nip = ? AND id != ?",
-    [nip, params.id],
+    `SELECT id FROM employees WHERE ${cleanNipSql("nip")} = ? AND id != ?`,
+    [nip.toLowerCase(), params.id],
   );
   if (nipTaken) {
     return NextResponse.json({ error: "NIP ini sudah dipakai pegawai lain." }, { status: 409 });

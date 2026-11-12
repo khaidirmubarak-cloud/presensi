@@ -17,6 +17,7 @@
 //   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 
 import mysql from "mysql2/promise";
+import { cleanNip, cleanNipSql } from "../lib/nip";
 import { randomUUID } from "node:crypto";
 
 function requireEnv(name: string): string {
@@ -187,7 +188,9 @@ async function migrateEmployees(source: mysql.Connection, target: mysql.Connecti
   }
 
   for (const u of rows as any[]) {
-    const nip = normalizeStr(u.nip);
+    // NIP cobakinerja bisa membawa karakter tak terlihat / encoding rusak ("â€Œ…") -- bersihkan
+    // supaya cocok dengan NIP dari Sevima dan tidak membuat pegawai ganda (lib/nip.ts).
+    const nip = cleanNip(u.nip) || null;
     if (!nip) {
       console.warn(`  lewati id_user=${u.id_user}: NIP kosong`);
       skipped++;
@@ -201,8 +204,8 @@ async function migrateEmployees(source: mysql.Connection, target: mysql.Connecti
     processedNips.add(nip);
 
     const [existingRows] = await target.execute<any[]>(
-      "SELECT id, department, finger_id FROM employees WHERE nip = ?",
-      [nip],
+      `SELECT id, department, finger_id FROM employees WHERE ${cleanNipSql("nip")} = ?`,
+      [nip.toLowerCase()],
     );
     let employeeId: string;
 
