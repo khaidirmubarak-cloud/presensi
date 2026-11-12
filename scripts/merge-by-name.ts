@@ -7,8 +7,8 @@
 //      baris cobakinerja itu hanya cocok dengan SATU baris Sevima/manual (tanpa nama kembar).
 //   2. NIDN di profil cobakinerja kosong atau sama dengan NIP baris Sevima.
 //   3. Bukan kasus dua NIP resmi 18 digit yang berbeda (kemungkinan besar orang berbeda).
-// Saat digabung, bila NIP baris Sevima berupa NIDN (bukan 18 digit), nomor itu disimpan ke
-// employee_profiles.nidn baris cobakinerja -- supaya sync berikutnya langsung mengenalinya.
+// Saat digabung, nomor di baris Sevima disimpan ke profil cobakinerja (NIDN bila 10 digit, selain
+// itu ke nip_lama) -- supaya sync berikutnya langsung mengenalinya.
 //
 // Jalankan (env DB_* ke produksi lewat tunnel, sama seperti fix:pegawai-ganda):
 //   npm run fix:pegawai-ganda-nama                      -> DRY RUN
@@ -125,12 +125,22 @@ async function main() {
       await db.beginTransaction();
       try {
         await mergeDonorsInto(db, fks, keeper, [p.donor]);
+        // Simpan nomor dari baris Sevima ke profil supaya sync berikutnya langsung mengenali
+        // pegawai ini (sync mencocokkan ke employees.nip, profil nidn, dan nip_lama):
+        //   - 10 digit (format NIDN)            -> employee_profiles.nidn (VARCHAR 10)
+        //   - lainnya, bukan NIP 18 digit, <=21 -> employee_profiles.nip_lama (VARCHAR 21),
+        //     mis. Sevima mencatat NIK/NUPTK/kode lain di field "nip"
         const donorNip = cleanNip(p.donor.nip);
-        if (!is18(donorNip) && donorNip && !keeper.nidn) {
-          // NIP Sevima berupa NIDN -> simpan di profil supaya sync berikutnya langsung cocok.
+        if (/^\d{10}$/.test(donorNip)) {
           await db.query(
             `INSERT INTO employee_profiles (employee_id, nidn) VALUES (?, ?)
              ON DUPLICATE KEY UPDATE nidn = COALESCE(nidn, VALUES(nidn))`,
+            [keeper.id, donorNip],
+          );
+        } else if (donorNip && !is18(donorNip) && donorNip.length <= 21) {
+          await db.query(
+            `INSERT INTO employee_profiles (employee_id, nip_lama) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE nip_lama = COALESCE(nip_lama, VALUES(nip_lama))`,
             [keeper.id, donorNip],
           );
         }
