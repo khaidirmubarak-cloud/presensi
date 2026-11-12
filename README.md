@@ -277,6 +277,15 @@ presensi WA, RHK, email login, kode WA, cuti, dst.) dipindah, ID finger & nomor 
 baris cobakinerja belum punya, lalu baris lain dihapus — satu transaksi per kelompok. Kelompok
 lain dilaporkan untuk dicek manual. Aman dijalankan ulang. Setelah itu, tekan "Sync dari Sevima".
 
+**Dosen dengan NIDN di kolom NIP Sevima.** Di Sevima `/dosen`, field `nip` ±72% dosen berisi NIDN
+(NIP resmi kadang di `nip_pns`). Sync kini mencocokkan semua identitas Sevima (nip, nip_pns, nidn,
+nidk) ke NIP / NIDN / NIP lama pegawai, dan menyimpan pegawai baru dengan `nip_pns` bila ada.
+`fix:pegawai-ganda` juga menggabungkan baris yang NIP-nya sama dengan **NIDN/NIP lama di profil**
+baris cobakinerja. Pasangan yang tidak tersambung lewat nomor apa pun (mis. NIDN di cobakinerja
+kosong) muncul di bagian **"Kemungkinan ganda berdasarkan nama"** — tidak digabung otomatis. Untuk
+menggabungkannya: isi **NIDN** di detail pegawai cobakinerja (sama dengan NIP baris Sevima), lalu
+jalankan `fix:pegawai-ganda` lagi.
+
 ## 6. Dosen kontrak / LB tidak dikelola (`npm run fix:hapus-dosen-lb`)
 
 Dosen kontrak/luar biasa di Sevima memakai NIP berawalan `LB` (±429 dari 716 data `/dosen`). Mereka

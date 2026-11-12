@@ -38,6 +38,8 @@ type Emp = {
   finger_id: number | null;
   department: string | null;
   legacy_id_user: string | null;
+  nidn: string | null;
+  nip_lama: string | null;
 };
 type Fk = { table: string; column: string; deleteRule: string };
 
@@ -49,7 +51,7 @@ function requireEnv(name: string): string {
 
 const show = (s: string | null) => (s === null ? "-" : JSON.stringify(s));
 const label = (e: Emp) =>
-  `${e.name} | NIP ${show(e.nip)} | ${e.legacy_id_user ? `cobakinerja ${e.legacy_id_user}` : "Sevima/manual"}` +
+  `${e.name} | NIP ${show(e.nip)}${e.nidn ? ` | NIDN ${e.nidn}` : ""} | ${e.legacy_id_user ? `cobakinerja ${e.legacy_id_user}` : "Sevima/manual"}` +
   ` | finger ${e.finger_id ?? "-"} | WA ${e.phone_number ?? "-"}${e.role === "admin" ? " | ADMIN" : ""}`;
 
 async function main() {
@@ -76,20 +78,46 @@ async function main() {
   console.log(`Tabel yang merujuk pegawai: ${fks.map((f) => `${f.table}.${f.column}`).join(", ")}\n`);
 
   const [empRows] = await db.query<any[]>(
-    `SELECT e.id, e.name, e.nip, e.phone_number, e.status, e.role, e.finger_id, e.department, p.legacy_id_user
+    `SELECT e.id, e.name, e.nip, e.phone_number, e.status, e.role, e.finger_id, e.department,
+            p.legacy_id_user, p.nidn, p.nip_lama
      FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id`,
   );
   const employees = empRows as Emp[];
 
-  const groups = new Map<string, Emp[]>();
+  // Dua baris dianggap orang yang sama bila berbagi identitas (setelah dibersihkan): NIP sama,
+  // ATAU NIP baris satu = NIDN / NIP lama di profil baris lain. Kasus kedua terjadi pada dosen:
+  // field "nip" di Sevima /dosen sering berisi NIDN, sedangkan baris cobakinerja menyimpan NIP
+  // resmi di employees.nip dan NIDN di employee_profiles.nidn. Digabung dengan union-find.
+  const parent = new Map<string, string>(employees.map((e) => [e.id, e.id]));
+  const find = (id: string): string => {
+    let root = id;
+    while (parent.get(root) !== root) root = parent.get(root)!;
+    parent.set(id, root);
+    return root;
+  };
+  const ownerOfKey = new Map<string, string>();
   for (const e of employees) {
-    const key = cleanNip(e.nip).toLowerCase();
-    if (!key) continue;
-    const list = groups.get(key) ?? [];
-    list.push(e);
-    groups.set(key, list);
+    for (const raw of [e.nip, e.nidn, e.nip_lama]) {
+      const key = cleanNip(raw).toLowerCase();
+      if (key.length < 8) continue; // abaikan isian pendek/sampah yang bisa salah menyambung
+      const other = ownerOfKey.get(key);
+      if (other) parent.set(find(e.id), find(other));
+      else ownerOfKey.set(key, e.id);
+    }
   }
-  const dupGroups = [...groups.entries()].filter(([, list]) => list.length > 1);
+  const components = new Map<string, Emp[]>();
+  for (const e of employees) {
+    const root = find(e.id);
+    const list = components.get(root) ?? [];
+    list.push(e);
+    components.set(root, list);
+  }
+  const dupGroups: [string, Emp[]][] = [...components.values()]
+    .filter((list) => list.length > 1)
+    .map((list) => {
+      const main = list.find((e) => e.legacy_id_user) ?? list[0];
+      return [cleanNip(main.nip).toLowerCase(), list];
+    });
 
   // ---------------------------------------------------------------- 1+2. Gabung
   let merged = 0;
@@ -238,11 +266,45 @@ async function main() {
   }
   console.log(`  NIDN / NIP lama di profil yang perlu dibersihkan: ${profCleaned}`);
 
+  // ---------------------------------------------------------------- 4. Kemungkinan ganda (nama)
+  // Baris Sevima/manual yang tidak tersambung lewat NIP/NIDN, tapi namanya (tanpa gelar) sama
+  // dengan baris cobakinerja -- mis. NIDN di cobakinerja kosong. HANYA dilaporkan, tidak digabung.
+  const normName = (n: string) =>
+    n
+      .split(",")[0]
+      .replace(/\b(prof|dr|drs|dra|ir|h|hj|st|andi)\b\.?/gi, (m) => (/^(andi|st)$/i.test(m.replace(".", "")) ? m : ""))
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+  const [currentRows] = await db.query<any[]>(
+    `SELECT e.id, e.name, e.nip, p.legacy_id_user, p.nidn
+     FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id`,
+  );
+  const cobaByName = new Map<string, any[]>();
+  for (const r of currentRows as any[]) {
+    if (!r.legacy_id_user || plannedKeepers.has(r.id)) continue;
+    const k = normName(r.name);
+    if (!k) continue;
+    cobaByName.set(k, [...(cobaByName.get(k) ?? []), r]);
+  }
+  const nameMatches: string[] = [];
+  for (const r of currentRows as any[]) {
+    if (r.legacy_id_user || plannedDonors.has(r.id)) continue;
+    const hits = cobaByName.get(normName(r.name));
+    if (!hits) continue;
+    nameMatches.push(
+      `${r.name} | NIP ${show(r.nip)} | Sevima/manual  <->  ` +
+        hits.map((h) => `${h.name} | NIP ${show(h.nip)} | NIDN ${h.nidn ?? "-"} | cobakinerja ${h.legacy_id_user}`).join("  //  "),
+    );
+  }
+  console.log(`\n--- Kemungkinan ganda berdasarkan nama (cek manual, TIDAK digabung): ${nameMatches.length} ---`);
+  for (const m of nameMatches) console.log(`  ${m}`);
+
   // ---------------------------------------------------------------- Ringkasan
   console.log("\n=== RINGKASAN ===");
   console.log(`Kelompok ganda           : ${dupGroups.length}`);
   console.log(`Digabung                 : ${APPLY ? merged : `${planned} kelompok (akan digabung, NIP-nya ikut dibersihkan)`}`);
   console.log(`NIP lain dibersihkan     : ${APPLY ? cleaned : `${dirty.length} (akan dibersihkan)`}`);
+  console.log(`Kemungkinan ganda (nama) : ${nameMatches.length} (cek manual, lihat daftar di atas)`);
   console.log(`Perlu dicek manual       : ${manual.length}`);
   for (const m of manual) console.log(`  - ${m}`);
   if (!APPLY) console.log("\nTidak ada yang diubah. Periksa daftar di atas, lalu jalankan ulang dengan --apply (setelah backup).");

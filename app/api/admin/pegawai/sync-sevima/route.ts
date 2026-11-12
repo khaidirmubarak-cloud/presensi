@@ -57,7 +57,16 @@ export async function POST() {
     if (key) idByCleanNip.set(key, r.id);
   }
 
-  const toInsert = sevimaEmployees.filter((e) => !idByCleanNip.has(e.nip.toLowerCase()));
+  // Cocok bila SALAH SATU identitas Sevima (nip, nip_pns, nidn, nidk) sama dengan NIP/NIDN/NIP
+  // lama pegawai yang sudah ada -- di /dosen, "nip" sering berisi NIDN (lihat lib/sevima.ts).
+  const findExisting = (emp: { ids: string[] }) => {
+    for (const id of emp.ids) {
+      const found = idByCleanNip.get(id.toLowerCase());
+      if (found) return found;
+    }
+    return undefined;
+  };
+  const toInsert = sevimaEmployees.filter((e) => !findExisting(e));
 
   let created = 0;
   for (const emp of toInsert) {
@@ -67,6 +76,7 @@ export async function POST() {
         "INSERT INTO employees (id, name, nip, status, role) VALUES (?, ?, ?, 'pending', 'pegawai')",
         [newId, emp.name, emp.nip],
       );
+      for (const id of emp.ids) idByCleanNip.set(id.toLowerCase(), newId);
       idByCleanNip.set(emp.nip.toLowerCase(), newId);
       created++;
     } catch {
@@ -82,14 +92,15 @@ export async function POST() {
   let emailNote: string | null = null;
   try {
     const ownersByEmail = new Map<string, Set<string>>();
-    const candidates: { email: string; nip: string; source: string }[] = [];
+    const candidates: { email: string; nip: string; employeeId: string | undefined; source: string }[] = [];
     for (const emp of sevimaEmployees) {
+      const employeeId = findExisting(emp);
       for (const [email, source] of [
         [emp.emailKampus, "sevima_email_kampus"],
         [emp.email, "sevima_email"],
       ] as const) {
         if (!email) continue;
-        candidates.push({ email, nip: emp.nip, source });
+        candidates.push({ email, nip: emp.nip, employeeId, source });
         const owners = ownersByEmail.get(email) ?? new Set<string>();
         owners.add(emp.nip);
         ownersByEmail.set(email, owners);
@@ -97,7 +108,7 @@ export async function POST() {
     }
     for (const c of candidates) {
       if ((ownersByEmail.get(c.email)?.size ?? 0) > 1) continue;
-      const employeeId = idByCleanNip.get(c.nip.toLowerCase());
+      const employeeId = c.employeeId;
       if (!employeeId) continue;
       const result = await execute(
         "INSERT IGNORE INTO employee_login_emails (email, employee_id, source) VALUES (?, ?, ?)",

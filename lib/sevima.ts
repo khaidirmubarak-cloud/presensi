@@ -5,9 +5,12 @@ import { cleanNip, isExcludedNip } from "./nip";
 // dari dashboard-kinerja -- pengelolaan akun pegawai sekarang terpusat di aplikasi ini.
 //
 // Dua sumber data terpisah — staf non-akademik di /pegawai, dosen di /dosen — dengan
-// bentuk attributes yang sama. Field "nip" aman dipakai apa adanya di kedua endpoint:
-// untuk dosen PNS isinya NIP asli, untuk dosen non-PNS otomatis berisi NIDN (karena
-// mereka memang tidak punya NIP formal). "nip_pns" tidak konsisten terisi, jangan dipakai.
+// bentuk attributes yang sama. PERHATIAN: di /dosen, field "nip" untuk ±72% dosen berisi
+// NIDN (10 digit), bukan NIP -- termasuk dosen ASN; NIP resminya kadang ada di "nip_pns"
+// (jarang terisi). Karena itu tiap record membawa semua identitasnya (ids: nip, nip_pns,
+// nidn, nidk) untuk dicocokkan ke employees.nip / employee_profiles.nidn / nip_lama, dan NIP
+// utamanya memakai nip_pns bila berupa NIP 18 digit (diukur 2026-11-12: 287 dosen non-LB,
+// 208 nip=NIDN, hanya 16 di antaranya punya nip_pns).
 //
 // Response BUKAN JSON:API standar walau bentuknya mirip — halaman berikutnya ada di
 // "urls.next" (bukan "links.next"), dan total/halaman ada di "meta".
@@ -18,6 +21,9 @@ type SevimaAttributes = {
   nama: string;
   email?: string | null;
   email_kampus?: string | null;
+  nip_pns?: string | null;
+  nidn?: string | null;
+  nidk?: string | null;
 };
 
 type SevimaRecord = {
@@ -32,7 +38,8 @@ type SevimaListResponse = {
 };
 
 export type SevimaEmployee = {
-  nip: string;
+  nip: string; // NIP utama (nip_pns 18 digit bila ada, selain itu field "nip" Sevima)
+  ids: string[]; // semua identitas bersih untuk pencocokan: nip, nip_pns, nidn, nidk
   name: string;
   // Dipakai untuk "Masuk dengan Google" di dashboard-kinerja (tabel employee_login_emails).
   email: string | null;
@@ -73,11 +80,17 @@ async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee
     const body: SevimaListResponse = await res.json();
 
     for (const record of body.data ?? []) {
-      const nip = cleanNip(record.attributes?.nip);
-      const name = record.attributes?.nama?.replace(ZERO_WIDTH_CHARS_RE, "").trim();
-      if (nip && name) {
+      const a = record.attributes ?? ({} as SevimaAttributes);
+      const rawNip = cleanNip(a.nip);
+      const nipPns = cleanNip(a.nip_pns);
+      const nip = /^\d{18}$/.test(nipPns) ? nipPns : rawNip;
+      const ids = [...new Set([rawNip, nipPns, cleanNip(a.nidn), cleanNip(a.nidk)].filter(Boolean))];
+      const name = a.nama?.replace(ZERO_WIDTH_CHARS_RE, "").trim();
+      // Dosen kontrak/LB dicek dari field "nip" asli Sevima (lib/nip.ts).
+      if (nip && name && !isExcludedNip(rawNip)) {
         employees.push({
           nip,
+          ids,
           name,
           email: cleanEmail(record.attributes?.email),
           emailKampus: cleanEmail(record.attributes?.email_kampus),
@@ -101,8 +114,6 @@ export async function fetchSevimaEmployees(): Promise<SevimaEmployee[]> {
   // juga tercatat sebagai pegawai struktural) — data /dosen menang kalau bentrok.
   const byNip = new Map<string, SevimaEmployee>();
   for (const emp of [...pegawai, ...dosen]) {
-    // Dosen kontrak/LB (NIP "LB…") tidak dikelola di sistem ini -- lihat lib/nip.ts.
-    if (isExcludedNip(emp.nip)) continue;
     byNip.set(emp.nip, emp);
   }
 
