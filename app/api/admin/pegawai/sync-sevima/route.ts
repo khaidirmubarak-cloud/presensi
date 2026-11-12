@@ -41,8 +41,16 @@ export async function POST() {
   // Pegawai dikenali lewat NIP yang sudah DIBERSIHKAN (lib/nip.ts), juga lewat NIDN / NIP lama
   // di employee_profiles -- supaya NIP dengan spasi/karakter tak terlihat/encoding rusak dari
   // cobakinerja, atau dosen yang di Sevima tercatat dengan NIDN, tidak dibuatkan baris ganda.
-  const idRows = await query<{ id: string; nip: string | null; nidn: string | null; nip_lama: string | null }>(
-    `SELECT e.id, e.nip, p.nidn, p.nip_lama FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id`,
+  const idRows = await query<{
+    id: string;
+    name: string;
+    nip: string | null;
+    nidn: string | null;
+    nip_lama: string | null;
+    legacy_id_user: string | null;
+  }>(
+    `SELECT e.id, e.name, e.nip, p.nidn, p.nip_lama, p.legacy_id_user
+     FROM employees e LEFT JOIN employee_profiles p ON p.employee_id = e.id`,
   );
   const idByCleanNip = new Map<string, string>();
   for (const r of idRows) {
@@ -66,7 +74,10 @@ export async function POST() {
     }
     return undefined;
   };
-  const toInsert = sevimaEmployees.filter((e) => !findExisting(e));
+  // Hanya akun AKTIF di Sevima yang boleh membuat pegawai baru / menghubungkan email login.
+  const activeEmployees = sevimaEmployees.filter((e) => e.active);
+  const inactiveEmployees = sevimaEmployees.filter((e) => !e.active);
+  const toInsert = activeEmployees.filter((e) => !findExisting(e));
 
   let created = 0;
   for (const emp of toInsert) {
@@ -93,7 +104,7 @@ export async function POST() {
   try {
     const ownersByEmail = new Map<string, Set<string>>();
     const candidates: { email: string; nip: string; employeeId: string | undefined; source: string }[] = [];
-    for (const emp of sevimaEmployees) {
+    for (const emp of activeEmployees) {
       const employeeId = findExisting(emp);
       for (const [email, source] of [
         [emp.emailKampus, "sevima_email_kampus"],
@@ -120,10 +131,32 @@ export async function POST() {
     emailNote = "Email login belum disinkronkan: tabel employee_login_emails belum dibuat (jalankan dashboard-kinerja/sql/003_employee_login_emails.sql).";
   }
 
+  // Pegawai di sistem yang HANYA cocok dengan akun tidak aktif di Sevima (tidak ada akun aktif
+  // yang cocok) -- dilaporkan ke admin untuk diputuskan (hapus / nonaktifkan), tidak diubah otomatis.
+  const matchedByActive = new Set(activeEmployees.map(findExisting).filter(Boolean) as string[]);
+  const rowById = new Map(idRows.map((r) => [r.id, r]));
+  const inactiveExisting: { id: string; name: string; nip: string | null; sevimaStatus: string; origin: string }[] = [];
+  const seenInactive = new Set<string>();
+  for (const emp of inactiveEmployees) {
+    const id = findExisting(emp);
+    if (!id || matchedByActive.has(id) || seenInactive.has(id)) continue;
+    seenInactive.add(id);
+    const row = rowById.get(id);
+    inactiveExisting.push({
+      id,
+      name: row?.name ?? emp.name,
+      nip: row?.nip ?? emp.nip,
+      sevimaStatus: emp.statusLabel,
+      origin: row?.legacy_id_user ? "cobakinerja" : "Sevima/manual",
+    });
+  }
+
   return NextResponse.json({
-    total: sevimaEmployees.length,
+    total: activeEmployees.length,
     created,
-    skipped: sevimaEmployees.length - created,
+    skipped: activeEmployees.length - created,
+    skippedInactive: inactiveEmployees.length,
+    inactiveExisting,
     emailsLinked,
     emailNote,
   });

@@ -24,6 +24,8 @@ type SevimaAttributes = {
   nip_pns?: string | null;
   nidn?: string | null;
   nidk?: string | null;
+  id_status_aktif?: string | null; // AA = Aktif; TA = Tidak Aktif, M = Meninggal Dunia, PN = Pensiun Normal, dst.
+  status_aktif?: string | null;
 };
 
 type SevimaRecord = {
@@ -41,6 +43,10 @@ export type SevimaEmployee = {
   nip: string; // NIP utama (nip_pns 18 digit bila ada, selain itu field "nip" Sevima)
   ids: string[]; // semua identitas bersih untuk pencocokan: nip, nip_pns, nidn, nidk
   name: string;
+  // Hanya akun Aktif (id_status_aktif "AA") yang diimpor. Satu orang bisa punya akun lama yang
+  // tidak aktif di Sevima (mis. TA/M/PN) -- akun itu tidak boleh membuat pegawai baru.
+  active: boolean;
+  statusLabel: string;
   // Dipakai untuk "Masuk dengan Google" di dashboard-kinerja (tabel employee_login_emails).
   email: string | null;
   emailKampus: string | null;
@@ -88,10 +94,16 @@ async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee
       const name = a.nama?.replace(ZERO_WIDTH_CHARS_RE, "").trim();
       // Dosen kontrak/LB dicek dari field "nip" asli Sevima (lib/nip.ts).
       if (nip && name && !isExcludedNip(rawNip)) {
+        const statusId = (a.id_status_aktif ?? "").trim().toUpperCase();
+        const statusText = (a.status_aktif ?? "").trim();
+        // Status kosong dianggap aktif (jangan buang data hanya karena field tidak terisi).
+        const active = statusId ? statusId === "AA" : !statusText || /^aktif$/i.test(statusText);
         employees.push({
           nip,
           ids,
           name,
+          active,
+          statusLabel: statusText || statusId || "Aktif",
           email: cleanEmail(record.attributes?.email),
           emailKampus: cleanEmail(record.attributes?.email_kampus),
         });
@@ -114,6 +126,10 @@ export async function fetchSevimaEmployees(): Promise<SevimaEmployee[]> {
   // juga tercatat sebagai pegawai struktural) — data /dosen menang kalau bentrok.
   const byNip = new Map<string, SevimaEmployee>();
   for (const emp of [...pegawai, ...dosen]) {
+    // NIP yang sama di /pegawai dan /dosen: data /dosen menang, KECUALI yang lain aktif dan
+    // data /dosen tidak aktif.
+    const prev = byNip.get(emp.nip);
+    if (prev && prev.active && !emp.active) continue;
     byNip.set(emp.nip, emp);
   }
 

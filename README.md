@@ -294,6 +294,12 @@ cobakinerja kosong/sama, dan bukan dua NIP 18 digit berbeda. NIDN dari baris Sev
 profil cobakinerja supaya sync berikutnya langsung cocok. Sisanya dilaporkan MANUAL beserta
 kandidatnya (isi NIDN di detail pegawai yang benar, lalu `fix:pegawai-ganda`).
 
+**Akun tidak aktif di Sevima.** Sync hanya mengimpor akun berstatus Aktif (`id_status_aktif = AA`);
+akun Tidak Aktif / Meninggal Dunia / Pensiun tidak membuat pegawai baru dan emailnya tidak
+dihubungkan (satu orang bisa punya akun lama yang tidak aktif). Pegawai di sistem yang hanya cocok
+dengan akun tidak aktif ditampilkan di hasil sync untuk ditinjau admin (hapus bila duplikat tanpa
+data, atau ubah Status kepegawaian menjadi Nonaktif) — sync tidak mengubahnya otomatis.
+
 ## 6. Dosen kontrak / LB tidak dikelola (`npm run fix:hapus-dosen-lb`)
 
 Dosen kontrak/luar biasa di Sevima memakai NIP berawalan `LB` (±429 dari 716 data `/dosen`). Mereka

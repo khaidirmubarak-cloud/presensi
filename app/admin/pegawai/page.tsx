@@ -33,6 +33,10 @@ export default function AdminPegawaiPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
+  // Pegawai di sistem yang hanya cocok dengan akun TIDAK AKTIF di Sevima (hasil sync terakhir).
+  const [inactiveExisting, setInactiveExisting] = useState<
+    { id: string; name: string; nip: string | null; sevimaStatus: string; origin: string }[]
+  >([]);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -104,6 +108,7 @@ export default function AdminPegawaiPage() {
   async function handleSyncSevima() {
     setSyncError("");
     setSyncMessage("");
+    setInactiveExisting([]);
     setSyncing(true);
 
     try {
@@ -118,9 +123,11 @@ export default function AdminPegawaiPage() {
       setSyncMessage(
         `${data.created} pegawai baru ditambahkan, ${data.skipped} sudah terdaftar (dilewati)` +
           (data.emailsLinked ? `, ${data.emailsLinked} email login (Google) baru dihubungkan` : "") +
+          (data.skippedInactive ? `, ${data.skippedInactive} akun tidak aktif di Sevima tidak diimpor` : "") +
           "." +
           (data.emailNote ? ` ${data.emailNote}` : ""),
       );
+      setInactiveExisting(data.inactiveExisting ?? []);
       loadPegawai();
     } catch {
       setSyncError("Terjadi kesalahan jaringan.");
@@ -145,6 +152,26 @@ export default function AdminPegawaiPage() {
         <p className="text-[13px] text-muted mb-3">Pembaruan Data dari akun Sevima</p>
         {syncError && <p className="text-[13px] text-red-700 mb-3">{syncError}</p>}
         {syncMessage && <p className="text-[13px] text-cardGreenDark mb-3">{syncMessage}</p>}
+        {inactiveExisting.length > 0 && (
+          <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-[12.5px] font-semibold text-amber-900">
+              {inactiveExisting.length} pegawai di sistem ini akunnya tidak aktif di Sevima — periksa, lalu hapus
+              (bila duplikat/tanpa data) atau ubah Status kepegawaian menjadi Nonaktif:
+            </p>
+            <ul className="mt-2 space-y-1">
+              {inactiveExisting.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-amber-900">
+                  <Link href={`/admin/pegawai/${r.id}`} className="font-semibold underline">
+                    {r.name}
+                  </Link>
+                  <span>
+                    {r.nip ?? "-"} · {r.sevimaStatus} di Sevima · asal {r.origin}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleSyncSevima}
