@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 type Rank = { id: string; code: string; title: string; meal_amount: string | null; meal_tax_percent: string };
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 export default function GolonganPage() {
   const [ranks, setRanks] = useState<Rank[]>([]);
@@ -86,9 +86,9 @@ export default function GolonganPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display text-[28px] leading-tight text-ink mb-6">Golongan</h1>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-6">Golongan</h1>
 
-      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <label className="block">
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">ID</span>
           <input className={inputClass} value={id} onChange={(e) => setId(e.target.value)} placeholder="3B" required />
@@ -118,7 +118,7 @@ export default function GolonganPage() {
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
+        <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
@@ -133,7 +133,7 @@ export default function GolonganPage() {
             <tbody>
               {ranks.map((r) =>
                 editingId === r.id ? (
-                  <tr key={r.id} className="border-t border-cardGreenDark/10 bg-pineLight/40">
+                  <tr key={r.id} className="border-t border-line bg-pineLight/40">
                     <td className="px-4 py-2.5">{r.id}</td>
                     <td className="px-4 py-2.5"><input className={inputClass} value={editCode} onChange={(e) => setEditCode(e.target.value)} /></td>
                     <td className="px-4 py-2.5"><input className={inputClass} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></td>
@@ -146,12 +146,12 @@ export default function GolonganPage() {
                     <td className="px-4 py-2.5">
                       <div className="flex gap-2">
                         <button onClick={() => saveEdit(r.id)} className="rounded-full bg-cardGreen px-3 py-1.5 text-[12px] font-semibold text-canvas">Simpan</button>
-                        <button onClick={() => setEditingId(null)} className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
+                        <button onClick={() => setEditingId(null)} className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  <tr key={r.id} className="border-t border-cardGreenDark/10">
+                  <tr key={r.id} className="border-t border-line">
                     <td className="px-4 py-2.5 text-ink">{r.id}</td>
                     <td className="px-4 py-2.5 text-muted">{r.code}</td>
                     <td className="px-4 py-2.5 text-muted">{r.title}</td>
@@ -167,7 +167,7 @@ export default function GolonganPage() {
                             setEditMealAmount(r.meal_amount ?? "");
                             setEditMealTaxPercent(r.meal_tax_percent ?? "");
                           }}
-                          className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                          className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight"
                         >
                           Edit
                         </button>

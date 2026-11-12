@@ -114,7 +114,7 @@ function formatScan(iso: string | null): string {
 }
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 export default function PegawaiDetailPage() {
   const params = useParams<{ id: string }>();
@@ -401,10 +401,10 @@ export default function PegawaiDetailPage() {
         <Link href="/admin/pegawai" className="text-[13px] font-semibold text-pine hover:underline">
           ← Kembali ke daftar pegawai
         </Link>
-        <h1 className="font-display text-[28px] leading-tight text-ink mt-2">{form.name}</h1>
+        <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mt-2">{form.name}</h1>
       </header>
 
-      <form onSubmit={handleSaveAkun} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+      <form onSubmit={handleSaveAkun} className="rounded-card bg-panel border border-line p-5 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted">WhatsApp LKH</p>
           <span
@@ -435,7 +435,7 @@ export default function PegawaiDetailPage() {
           <button
             type="submit"
             disabled={akunSaving}
-            className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+            className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
             {akunSaving ? "Menyimpan…" : "Simpan nomor"}
           </button>
@@ -444,7 +444,7 @@ export default function PegawaiDetailPage() {
         {akunMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{akunMessage}</p>}
       </form>
 
-      <form onSubmit={handleSaveFinger} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+      <form onSubmit={handleSaveFinger} className="rounded-card bg-panel border border-line p-5 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted">ID Finger (mesin presensi)</p>
           <span
@@ -483,14 +483,14 @@ export default function PegawaiDetailPage() {
             type="button"
             onClick={handleCheckFinger}
             disabled={fingerBusy !== null || !fingerInput.trim()}
-            className="rounded-full border border-cardGreenDark/30 px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+            className="rounded-full border border-line px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
             {fingerBusy === "cek" ? "Mengecek…" : "Cek"}
           </button>
           <button
             type="submit"
             disabled={fingerBusy !== null}
-            className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+            className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
             {fingerBusy === "simpan" ? "Menyimpan…" : fingerInput.trim() ? "Simpan ID finger" : "Kosongkan ID finger"}
           </button>
@@ -514,7 +514,7 @@ export default function PegawaiDetailPage() {
         {fingerMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{fingerMessage}</p>}
       </form>
 
-      <form onSubmit={handleAddEmail} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+      <form onSubmit={handleAddEmail} className="rounded-card bg-panel border border-line p-5 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted">Email login</p>
           <span
@@ -532,7 +532,7 @@ export default function PegawaiDetailPage() {
         </p>
 
         {loginEmails.length > 0 && (
-          <ul className="mb-4 divide-y divide-cardGreenDark/10 rounded-2xl border border-cardGreenDark/15">
+          <ul className="mb-4 divide-y divide-line rounded-2xl border border-line">
             {loginEmails.map((le) => (
               <li key={le.email} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                 <div className="min-w-0">
@@ -572,7 +572,7 @@ export default function PegawaiDetailPage() {
           <button
             type="submit"
             disabled={emailBusy || !newEmail.trim()}
-            className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+            className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
             {emailBusy ? "Menyimpan…" : "Tambah email"}
           </button>
@@ -582,7 +582,7 @@ export default function PegawaiDetailPage() {
       </form>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5">
+        <section className="rounded-card bg-panel border border-line p-5">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">Identitas</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Nama lengkap">
@@ -612,7 +612,7 @@ export default function PegawaiDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5">
+        <section className="rounded-card bg-panel border border-line p-5">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
             Kategori & klasifikasi
           </p>
@@ -685,7 +685,7 @@ export default function PegawaiDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5">
+        <section className="rounded-card bg-panel border border-line p-5">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
             Riwayat & tanggal
           </p>
@@ -708,7 +708,7 @@ export default function PegawaiDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5">
+        <section className="rounded-card bg-panel border border-line p-5">
           <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">Flag</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -723,7 +723,7 @@ export default function PegawaiDetailPage() {
                   type="checkbox"
                   checked={!!form[field]}
                   onChange={(e) => set(field, e.target.checked)}
-                  className="h-4 w-4 rounded border-cardGreenDark/30 text-cardGreen focus:ring-pine/30"
+                  className="h-4 w-4 rounded border-line text-cardGreen focus:ring-pine/30"
                 />
                 {label}
               </label>

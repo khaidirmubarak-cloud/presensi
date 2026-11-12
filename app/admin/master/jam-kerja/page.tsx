@@ -14,7 +14,7 @@ const DAY_LABEL: Record<Rule["day_type"], string> = { weekday: "Senin-Kamis", fr
 const PERIOD_LABEL: Record<Rule["period_type"], string> = { normal: "Normal", ramadhan: "Ramadhan" };
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 export default function JamKerjaPage() {
   const [rules, setRules] = useState<Rule[]>([]);
@@ -47,7 +47,7 @@ export default function JamKerjaPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Jam Kerja</h1>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Jam Kerja</h1>
       <p className="text-[14px] text-muted mb-6">
         Dipakai untuk menghitung status Terlambat/Pulang Cepat di halaman Presensi. Masa Ramadhan
         ditentukan otomatis dari menu Ramadhan.
@@ -56,7 +56,7 @@ export default function JamKerjaPage() {
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden">
+        <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
@@ -70,7 +70,7 @@ export default function JamKerjaPage() {
             <tbody>
               {rules.map((r) =>
                 editingId === r.id ? (
-                  <tr key={r.id} className="border-t border-cardGreenDark/10 bg-pineLight/40">
+                  <tr key={r.id} className="border-t border-line bg-pineLight/40">
                     <td className="px-4 py-2.5 text-ink">{DAY_LABEL[r.day_type]}</td>
                     <td className="px-4 py-2.5 text-ink">{PERIOD_LABEL[r.period_type]}</td>
                     <td className="px-4 py-2.5"><input type="time" className={inputClass} value={editIn} onChange={(e) => setEditIn(e.target.value)} /></td>
@@ -78,12 +78,12 @@ export default function JamKerjaPage() {
                     <td className="px-4 py-2.5">
                       <div className="flex gap-2">
                         <button onClick={() => saveEdit(r.id)} className="rounded-full bg-cardGreen px-3 py-1.5 text-[12px] font-semibold text-canvas">Simpan</button>
-                        <button onClick={() => setEditingId(null)} className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
+                        <button onClick={() => setEditingId(null)} className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  <tr key={r.id} className="border-t border-cardGreenDark/10">
+                  <tr key={r.id} className="border-t border-line">
                     <td className="px-4 py-2.5 text-ink">{DAY_LABEL[r.day_type]}</td>
                     <td className="px-4 py-2.5 text-muted">{PERIOD_LABEL[r.period_type]}</td>
                     <td className="px-4 py-2.5 text-muted">{r.check_in_time.slice(0, 5)}</td>
@@ -95,7 +95,7 @@ export default function JamKerjaPage() {
                           setEditIn(r.check_in_time.slice(0, 5));
                           setEditOut(r.check_out_time.slice(0, 5));
                         }}
-                        className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                        className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight"
                       >
                         Edit
                       </button>

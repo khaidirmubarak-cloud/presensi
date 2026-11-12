@@ -1,37 +1,41 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --c-ink: 28 37 33;
-  --c-canvas: 246 244 238;
+  /* Tema biru-indigo (2026-11), sama dengan dashboard-kinerja. Nama token lama (pine, cardGreen,
+     dst.) dipertahankan supaya semua komponen ikut berganti -- isinya kini biru. */
+  --c-ink: 17 24 39;
+  --c-canvas: 255 255 255;
   --c-panel: 255 255 255;
-  --c-pine: 47 74 61;
-  --c-pineLight: 231 238 232;
-  --c-moss: 92 138 110;
-  --c-clay: 181 101 29;
-  --c-line: 220 215 201;
-  --c-muted: 107 114 104;
-  --c-cardGreen: 23 131 73;
-  --c-cardGreenDark: 15 99 55;
-  --c-pill: 191 227 206;
+  --c-pine: 47 91 234;
+  --c-pineLight: 238 242 255;
+  --c-moss: 99 102 241;
+  --c-clay: 249 115 22;
+  --c-line: 228 232 240;
+  --c-muted: 100 116 139;
+  --c-cardGreen: 47 91 234;
+  --c-cardGreenDark: 37 70 200;
+  --c-pill: 219 228 255;
+  --c-body-bg: 244 246 251;
 }
 
 [data-theme="dark"] {
-  --c-ink: 230 232 226;
-  --c-canvas: 17 22 19;
-  --c-panel: 26 33 29;
-  --c-pine: 143 196 168;
-  --c-pineLight: 34 43 38;
-  --c-moss: 122 176 143;
-  --c-clay: 214 140 79;
-  --c-line: 51 61 55;
-  --c-muted: 154 163 156;
-  --c-cardGreen: 39 168 99;
-  --c-cardGreenDark: 25 138 79;
-  --c-pill: 41 64 51;
+  --c-ink: 226 232 240;
+  --c-canvas: 11 15 28;
+  --c-panel: 22 27 45;
+  --c-pine: 129 140 248;
+  --c-pineLight: 30 38 66;
+  --c-moss: 165 180 252;
+  --c-clay: 251 146 60;
+  --c-line: 39 47 74;
+  --c-muted: 148 163 184;
+  --c-cardGreen: 99 130 246;
+  --c-cardGreenDark: 79 110 230;
+  --c-pill: 40 52 92;
+  --c-body-bg: 11 15 28;
 }
 
 html {
@@ -39,25 +43,16 @@ html {
 }
 
 body {
-  background-color: #eaf3fb;
-  background-image: radial-gradient(circle at 1px 1px, rgba(31, 62, 94, 0.07) 1px, transparent 0);
-  background-size: 22px 22px;
-}
-
-[data-theme="dark"] body {
-  background-color: #0d1210;
-  background-image: radial-gradient(circle at 1px 1px, rgba(230, 232, 226, 0.06) 1px, transparent 0);
-  background-size: 22px 22px;
+  background-color: rgb(var(--c-body-bg));
+  background-image:
+    radial-gradient(40rem 28rem at -8% -10%, rgb(var(--c-pine) / 0.10), transparent 60%),
+    radial-gradient(36rem 26rem at 108% 110%, rgb(var(--c-moss) / 0.10), transparent 60%);
+  background-attachment: fixed;
 }
 
 ::selection {
-  background-color: #2f4a3d;
-  color: #f6f4ee;
-}
-
-[data-theme="dark"] ::selection {
-  background-color: #8fc4a8;
-  color: #11160f;
+  background-color: rgb(var(--c-pine));
+  color: #fff;
 }
 
 @media (prefers-reduced-motion: reduce) {

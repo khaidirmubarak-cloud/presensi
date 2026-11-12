@@ -142,10 +142,10 @@ export default function AdminPegawaiPage() {
     <div className="mx-auto max-w-5xl px-6 py-14">
 
       <header className="mb-8">
-        <h1 className="font-display text-[30px] leading-tight text-ink">Data Pegawai</h1>
+        <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Data Pegawai</h1>
       </header>
 
-      <section className="rounded-card bg-panel border border-cardGreenDark/20 shadow-[0_1px_0_rgba(28,37,33,0.04)] p-5 mb-6">
+      <section className="rounded-card bg-panel border border-line shadow-card p-5 mb-6">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-3">
           Sinkronisasi dari Sevima
         </p>
@@ -176,13 +176,13 @@ export default function AdminPegawaiPage() {
           type="button"
           onClick={handleSyncSevima}
           disabled={syncing}
-          className="rounded-full border border-cardGreenDark/30 bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+          className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
         >
           {syncing ? "Menyinkronkan…" : "Sync dari Sevima"}
         </button>
       </section>
 
-      <section className="rounded-card bg-panel border border-cardGreenDark/20 shadow-[0_1px_0_rgba(28,37,33,0.04)] p-5 mb-10">
+      <section className="rounded-card bg-panel border border-line shadow-card p-5 mb-10">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
           Tambah pegawai baru
         </p>
@@ -194,7 +194,7 @@ export default function AdminPegawaiPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+              className="w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
             />
           </label>
 
@@ -205,7 +205,7 @@ export default function AdminPegawaiPage() {
               required
               value={nip}
               onChange={(e) => setNip(e.target.value)}
-              className="w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+              className="w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
             />
           </label>
 
@@ -235,7 +235,7 @@ export default function AdminPegawaiPage() {
               placeholder="Cari nama atau NIP…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink w-56 focus:outline-none focus:ring-2 focus:ring-pine/30"
+              className="rounded-full border border-line bg-pineLight px-4 py-2 text-[13px] text-ink w-56 focus:outline-none focus:ring-2 focus:ring-pine/30"
             />
             <select
               value={category}
@@ -243,7 +243,7 @@ export default function AdminPegawaiPage() {
                 setCategory(e.target.value);
                 setPage(1);
               }}
-              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+              className="rounded-full border border-line bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
             >
               <option value="">Semua kategori</option>
               {categories.map((c) => (
@@ -258,7 +258,7 @@ export default function AdminPegawaiPage() {
                 setFingerFilter(e.target.value);
                 setPage(1);
               }}
-              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+              className="rounded-full border border-line bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
             >
               <option value="">Semua ID finger</option>
               <option value="kosong">Tanpa ID finger</option>
@@ -271,7 +271,7 @@ export default function AdminPegawaiPage() {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+                className="rounded-full border border-line bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
               >
                 {PAGE_SIZES.map((size) => (
                   <option key={size} value={size}>
@@ -290,7 +290,7 @@ export default function AdminPegawaiPage() {
             {debouncedSearch || category || fingerFilter ? "Tidak ada pegawai yang cocok." : "Belum ada pegawai."}
           </p>
         ) : (
-          <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
+          <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden overflow-x-auto">
             <table className="w-full text-[13.5px]">
               <thead className="bg-pineLight text-ink">
                 <tr>
@@ -307,7 +307,7 @@ export default function AdminPegawaiPage() {
               </thead>
               <tbody>
                 {pegawai.map((p) => (
-                  <tr key={p.id} className="border-t border-cardGreenDark/10">
+                  <tr key={p.id} className="border-t border-line">
                     <td className="px-4 py-2.5 text-ink">{p.name}</td>
                     <td className="px-4 py-2.5 text-muted">{p.nip ?? "-"}</td>
                     <td className="px-4 py-2.5">
@@ -344,7 +344,7 @@ export default function AdminPegawaiPage() {
                     <td className="px-4 py-2.5">
                       <Link
                         href={`/admin/pegawai/${p.id}`}
-                        className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors"
+                        className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight transition-colors"
                       >
                         Detail
                       </Link>

@@ -41,7 +41,7 @@ export default function LoginPage() {
   return (
     <main className="mx-auto max-w-sm px-6 py-16">
       <div className="flex items-start justify-between gap-3">
-        <h1 className="font-display text-[28px] leading-tight text-ink mb-1">Login</h1>
+        <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-1">Login</h1>
         <ThemeToggle />
       </div>
       <p className="text-[14px] text-muted mb-8">
@@ -51,7 +51,7 @@ export default function LoginPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-card bg-panel border border-cardGreenDark/20 shadow-[0_1px_0_rgba(28,37,33,0.04)] p-5"
+        className="rounded-card bg-panel border border-line shadow-card p-5"
       >
         <label className="block mb-4">
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Nomor WhatsApp</span>
@@ -61,7 +61,7 @@ export default function LoginPage() {
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             placeholder="0812xxxxxxx"
-            className="w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+            className="w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
           />
         </label>
 
@@ -73,7 +73,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
-            className="w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+            className="w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
           />
         </label>
 

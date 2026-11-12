@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 type Tier = { id: number; max_minutes: number | null; percent: string };
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 function tierLabel(tier: Tier, prevMax: number | null): string {
   const from = prevMax === null ? 1 : prevMax + 1;
@@ -108,7 +108,7 @@ export default function PotonganTukinPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Potongan Tukin</h1>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Potongan Tukin</h1>
       <p className="text-[14px] text-muted mb-6">
         Aturan persentase potongan tukin yang dipakai kalkulasi di menu Tukin -- tier
         keterlambatan/pulang cepat berdasarkan menit, dan persentase untuk hari kerja
@@ -116,7 +116,7 @@ export default function PotonganTukinPage() {
         menu Jenis Cuti.
       </p>
 
-      <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8">
+      <section className="rounded-card bg-panel border border-line p-5 mb-8">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
           Alpa (tanpa keterangan)
         </p>
@@ -151,7 +151,7 @@ export default function PotonganTukinPage() {
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
           Tier keterlambatan / pulang cepat
         </p>
-        <form onSubmit={addTier} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-4 flex items-end gap-3">
+        <form onSubmit={addTier} className="rounded-card bg-panel border border-line p-5 mb-4 flex items-end gap-3">
           <label className="block">
             <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Batas atas (menit)</span>
             <input
@@ -179,7 +179,7 @@ export default function PotonganTukinPage() {
         {tiersLoading ? (
           <p className="text-[14px] text-muted">Memuat…</p>
         ) : (
-          <div className="rounded-card border border-cardGreenDark/20 overflow-hidden">
+          <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden">
             <table className="w-full text-[13.5px]">
               <thead className="bg-pineLight text-ink">
                 <tr>
@@ -192,7 +192,7 @@ export default function PotonganTukinPage() {
               <tbody>
                 {tiers.map((t, i) =>
                   editingId === t.id ? (
-                    <tr key={t.id} className="border-t border-cardGreenDark/10 bg-pineLight/40">
+                    <tr key={t.id} className="border-t border-line bg-pineLight/40">
                       <td className="px-4 py-2.5 text-muted">{tierLabel(t, tiers[i - 1]?.max_minutes ?? null)}</td>
                       <td className="px-4 py-2.5">
                         <input
@@ -210,12 +210,12 @@ export default function PotonganTukinPage() {
                       <td className="px-4 py-2.5">
                         <div className="flex gap-2">
                           <button onClick={() => saveTier(t.id)} className="rounded-full bg-cardGreen px-3 py-1.5 text-[12px] font-semibold text-canvas">Simpan</button>
-                          <button onClick={() => setEditingId(null)} className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
+                          <button onClick={() => setEditingId(null)} className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    <tr key={t.id} className="border-t border-cardGreenDark/10">
+                    <tr key={t.id} className="border-t border-line">
                       <td className="px-4 py-2.5 text-ink">{tierLabel(t, tiers[i - 1]?.max_minutes ?? null)}</td>
                       <td className="px-4 py-2.5 text-muted">{t.max_minutes ?? "tanpa batas"}</td>
                       <td className="px-4 py-2.5 text-muted">{t.percent}%</td>
@@ -227,7 +227,7 @@ export default function PotonganTukinPage() {
                               setEditMax(t.max_minutes?.toString() ?? "");
                               setEditPercent(t.percent);
                             }}
-                            className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                            className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight"
                           >
                             Edit
                           </button>

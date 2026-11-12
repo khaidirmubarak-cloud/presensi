@@ -29,7 +29,7 @@ function rupiah(value: string | number | null): string {
 const PAGE_SIZES = [10, 50, 100];
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 export default function TukinPage() {
   const [period, setPeriod] = useState(witaMonthNow());
@@ -183,7 +183,7 @@ export default function TukinPage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-14">
       <header className="mb-8">
-        <h1 className="font-display text-[30px] leading-tight text-ink">Tunjangan Kinerja</h1>
+        <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Tunjangan Kinerja</h1>
         <p className="mt-1.5 text-[14px] text-muted">
           Perhitungan tunjangan kinerja bulanan berdasarkan nominal kelas jabatan/grade
           non-ASN, dikurangi potongan awal untuk dosen serdos, lalu dipotong sesuai
@@ -211,7 +211,7 @@ export default function TukinPage() {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          className="rounded-full border border-line bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
         >
           <option value="">Semua kategori</option>
           {categories.map((c) => (
@@ -221,7 +221,7 @@ export default function TukinPage() {
         <select
           value={unitId}
           onChange={(e) => setUnitId(e.target.value)}
-          className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          className="rounded-full border border-line bg-pineLight px-4 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
         >
           <option value="">Semua unit</option>
           {units.map((u) => (
@@ -236,7 +236,7 @@ export default function TukinPage() {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+            className="rounded-full border border-line bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
           >
             {PAGE_SIZES.map((size) => (
               <option key={size} value={size}>{size}</option>
@@ -253,13 +253,13 @@ export default function TukinPage() {
       </div>
 
       {printOpen && (
-        <div className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6">
+        <div className="rounded-card bg-panel border border-line p-5 mb-6">
           <div className="flex flex-wrap items-end gap-3">
             <button
               type="button"
               disabled={printing !== null}
               onClick={() => handlePrint("pdf")}
-              className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+              className="rounded-full border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
             >
               {printing === "pdf" ? "Membuat PDF…" : "Unduh PDF"}
             </button>
@@ -267,7 +267,7 @@ export default function TukinPage() {
               type="button"
               disabled={printing !== null}
               onClick={() => handlePrint("excel")}
-              className="rounded-full border border-cardGreenDark/30 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-60"
+              className="rounded-full border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
             >
               {printing === "excel" ? "Membuat Excel…" : "Unduh Excel"}
             </button>
@@ -324,7 +324,7 @@ export default function TukinPage() {
           <p className="mb-3 text-[12.5px] text-muted">
             {total} pegawai -- total diterima (halaman ini) Rp{rupiah(totalNet)}
           </p>
-          <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
+          <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden overflow-x-auto">
             <table className="w-full text-[13.5px]">
               <thead className="bg-pineLight text-ink">
                 <tr>
@@ -344,7 +344,7 @@ export default function TukinPage() {
               </thead>
               <tbody>
                 {calculations.map((c) => (
-                  <tr key={c.employee_id} className="border-t border-cardGreenDark/10">
+                  <tr key={c.employee_id} className="border-t border-line">
                     <td className="px-4 py-2.5">
                       <input
                         type="checkbox"
@@ -367,7 +367,7 @@ export default function TukinPage() {
                     <td className="px-4 py-2.5">
                       <Link
                         href={`/admin/tukin/${c.employee_id}?period=${period}`}
-                        className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                        className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight"
                       >
                         Detail
                       </Link>

@@ -108,7 +108,7 @@ export default function PresensiPegawaiPage() {
         <Link href="/admin/presensi" className="text-[13px] font-semibold text-pine hover:underline">
           ← Kembali ke Presensi
         </Link>
-        <h1 className="font-display text-[28px] leading-tight text-ink mt-2">
+        <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mt-2">
           {employee?.name ?? "Memuat…"}
         </h1>
         {employee && (
@@ -127,7 +127,7 @@ export default function PresensiPegawaiPage() {
           type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+          className="rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
         />
       </label>
 
@@ -148,7 +148,7 @@ export default function PresensiPegawaiPage() {
       ) : days.length === 0 ? (
         <p className="text-[14px] text-muted">Tidak ada data untuk bulan ini.</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
+        <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
@@ -161,7 +161,7 @@ export default function PresensiPegawaiPage() {
             </thead>
             <tbody>
               {days.map((d) => (
-                <tr key={d.date} className="border-t border-cardGreenDark/10">
+                <tr key={d.date} className="border-t border-line">
                   <td className="px-4 py-2.5 text-ink">{formatTanggal(d.date)}</td>
                   <td className="px-4 py-2.5 text-muted">{formatWita(d.jamMasuk)}</td>
                   <td className="px-4 py-2.5 text-muted">{formatWita(d.jamPulang)}</td>

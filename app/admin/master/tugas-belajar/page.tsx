@@ -30,7 +30,7 @@ const STATUS_CLASS: Record<Assignment["status"], string> = {
 };
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 export default function TugasBelajarPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -121,14 +121,14 @@ export default function TugasBelajarPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-14">
       <header className="mb-8">
-        <h1 className="font-display text-[30px] leading-tight text-ink">Tugas Belajar</h1>
+        <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Tugas Belajar</h1>
         <p className="mt-1.5 text-[14px] text-muted">
           Pegawai dengan status aktif TUBE2 dapat potongan tukin flat 50% (menggantikan
           perhitungan harian), TUBE1 dikecualikan total dari potongan.
         </p>
       </header>
 
-      <section className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8">
+      <section className="rounded-card bg-panel border border-line p-5 mb-8">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
           Tambah data tugas belajar
         </p>
@@ -146,7 +146,7 @@ export default function TugasBelajarPage() {
               required
             />
             {empOptions.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-card border border-cardGreenDark/20 bg-canvas shadow-lg overflow-hidden">
+              <div className="absolute z-10 mt-1 w-full rounded-card border border-line bg-canvas shadow-card overflow-hidden">
                 {empOptions.map((o) => (
                   <button
                     type="button"
@@ -204,7 +204,7 @@ export default function TugasBelajarPage() {
       ) : assignments.length === 0 ? (
         <p className="text-[14px] text-muted">Belum ada data tugas belajar.</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
+        <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden overflow-x-auto">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
@@ -217,7 +217,7 @@ export default function TugasBelajarPage() {
             </thead>
             <tbody>
               {assignments.map((a) => (
-                <tr key={a.id} className="border-t border-cardGreenDark/10">
+                <tr key={a.id} className="border-t border-line">
                   <td className="px-4 py-2.5 text-ink">
                     {a.employee_name}
                     {a.employee_nip ? <span className="block text-[11.5px] text-muted">{a.employee_nip}</span> : null}
@@ -234,7 +234,7 @@ export default function TugasBelajarPage() {
                       {a.status === "aktif" ? (
                         <button
                           onClick={() => setStatus(a.id, "selesai")}
-                          className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                          className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight"
                         >
                           Tandai Selesai
                         </button>

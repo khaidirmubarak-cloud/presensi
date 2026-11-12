@@ -9,7 +9,7 @@ type Rank = { id: string; code: string; title: string };
 const PAGE_SIZES = [10, 50, 100];
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 function rupiah(value: string | number): string {
   return Number(value).toLocaleString("id-ID");
@@ -109,13 +109,13 @@ export default function GajiPokokPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display text-[28px] leading-tight text-ink mb-2">Gaji Pokok</h1>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Gaji Pokok</h1>
       <p className="text-[14px] text-muted mb-6">
         Nominal gaji pokok per golongan x masa kerja. Dipakai untuk menghitung "potongan
         awal" dosen serdos di menu Tunjangan Kinerja.
       </p>
 
-      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <label className="block">
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">Golongan</span>
           <select className={inputClass} value={rankId} onChange={(e) => setRankId(e.target.value)} required>
@@ -156,7 +156,7 @@ export default function GajiPokokPage() {
                 setPageSize(Number(e.target.value));
                 setPage(1);
               }}
-              className="rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+              className="rounded-full border border-line bg-pineLight px-3 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
             >
               {PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>{size}</option>
@@ -172,7 +172,7 @@ export default function GajiPokokPage() {
         <p className="text-[14px] text-muted">Belum ada data gaji pokok.</p>
       ) : (
         <>
-          <div className="rounded-card border border-cardGreenDark/20 overflow-hidden overflow-x-auto">
+          <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden overflow-x-auto">
             <table className="w-full text-[13.5px]">
               <thead className="bg-pineLight text-ink">
                 <tr>
@@ -185,7 +185,7 @@ export default function GajiPokokPage() {
               <tbody>
                 {scales.map((s) =>
                   editingId === s.id ? (
-                    <tr key={s.id} className="border-t border-cardGreenDark/10 bg-pineLight/40">
+                    <tr key={s.id} className="border-t border-line bg-pineLight/40">
                       <td className="px-4 py-2.5 text-ink">{s.rank_code}</td>
                       <td className="px-4 py-2.5">
                         <input type="number" min="0" className={inputClass} value={editYears} onChange={(e) => setEditYears(e.target.value)} />
@@ -196,12 +196,12 @@ export default function GajiPokokPage() {
                       <td className="px-4 py-2.5">
                         <div className="flex gap-2">
                           <button onClick={() => saveEdit(s.id)} className="rounded-full bg-cardGreen px-3 py-1.5 text-[12px] font-semibold text-canvas">Simpan</button>
-                          <button onClick={() => setEditingId(null)} className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
+                          <button onClick={() => setEditingId(null)} className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink">Batal</button>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    <tr key={s.id} className="border-t border-cardGreenDark/10">
+                    <tr key={s.id} className="border-t border-line">
                       <td className="px-4 py-2.5 text-ink">{s.rank_code}</td>
                       <td className="px-4 py-2.5 text-muted">{s.years} tahun</td>
                       <td className="px-4 py-2.5 text-muted text-right">Rp{rupiah(s.nominal)}</td>
@@ -213,7 +213,7 @@ export default function GajiPokokPage() {
                               setEditYears(String(s.years));
                               setEditNominal(s.nominal);
                             }}
-                            className="rounded-full border border-cardGreenDark/30 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-cardGreenDark/10"
+                            className="rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-pineLight"
                           >
                             Edit
                           </button>

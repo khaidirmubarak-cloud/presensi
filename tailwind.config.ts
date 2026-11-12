@@ -25,12 +25,17 @@ export default {
         pill: "rgb(var(--c-pill) / <alpha-value>)",
       },
       fontFamily: {
-        display: ["'Plus Jakarta Sans'", "sans-serif"],
-        body: ["'Plus Jakarta Sans'", "sans-serif"],
+        display: ["'Plus Jakarta Sans'", "Inter", "sans-serif"],
+        body: ["Inter", "system-ui", "sans-serif"],
         mono: ["'IBM Plex Mono'", "monospace"],
       },
       borderRadius: {
-        card: "14px",
+        card: "18px",
+      },
+      boxShadow: {
+        card: "0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px rgb(16 24 40 / 0.06)",
+        soft: "0 1px 2px rgb(16 24 40 / 0.05)",
+        primary: "0 8px 20px rgb(47 91 234 / 0.28)",
       },
     },
   },

@@ -21,7 +21,7 @@ export default function Pagination({
           type="button"
           onClick={onPrev}
           disabled={page <= 1}
-          className="rounded-full border border-cardGreenDark/30 px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-40"
+          className="rounded-full border border-line px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-40"
         >
           Sebelumnya
         </button>
@@ -29,7 +29,7 @@ export default function Pagination({
           type="button"
           onClick={onNext}
           disabled={page >= totalPages}
-          className="rounded-full border border-cardGreenDark/30 px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-cardGreenDark/10 transition-colors disabled:opacity-40"
+          className="rounded-full border border-line px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-40"
         >
           Berikutnya
         </button>

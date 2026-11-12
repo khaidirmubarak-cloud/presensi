@@ -6,7 +6,7 @@ type JobClass = { id: number; name: string; base_amount: string | null };
 type FunctionalPosition = { id: string; name: string; job_class_id: number | null; job_class_name: string | null };
 
 const inputClass =
-  "w-full rounded-full border border-cardGreenDark/20 bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
+  "w-full rounded-full border border-line bg-pineLight px-4 py-2 text-[13.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30";
 
 function JobClassTab() {
   const [items, setItems] = useState<JobClass[]>([]);
@@ -72,7 +72,7 @@ function JobClassTab() {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
         <label className="block">
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">ID kelas</span>
           <input type="number" className={inputClass} value={id} onChange={(e) => setId(e.target.value)} required />
@@ -94,7 +94,7 @@ function JobClassTab() {
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden">
+        <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
@@ -106,7 +106,7 @@ function JobClassTab() {
             </thead>
             <tbody>
               {items.map((c) => (
-                <tr key={c.id} className="border-t border-cardGreenDark/10">
+                <tr key={c.id} className="border-t border-line">
                   <td className="px-4 py-2.5 text-ink">{c.id}</td>
                   <td className="px-4 py-2.5 text-muted">{c.name}</td>
                   <td className="px-4 py-2.5">
@@ -118,7 +118,7 @@ function JobClassTab() {
                       onBlur={(e) => {
                         if (e.target.value !== (c.base_amount ?? "")) handleUpdateAmount(c, e.target.value);
                       }}
-                      className="w-32 rounded-full border border-cardGreenDark/20 bg-pineLight px-3 py-1.5 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
+                      className="w-32 rounded-full border border-line bg-pineLight px-3 py-1.5 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-pine/30"
                     />
                   </td>
                   <td className="px-4 py-2.5">
@@ -197,7 +197,7 @@ function FunctionalPositionTab() {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-cardGreenDark/20 p-5 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+      <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <label className="block">
           <span className="block text-[12.5px] font-semibold text-ink mb-1.5">ID</span>
           <input className={inputClass} value={id} onChange={(e) => setId(e.target.value)} required />
@@ -224,7 +224,7 @@ function FunctionalPositionTab() {
       {loading ? (
         <p className="text-[14px] text-muted">Memuat…</p>
       ) : (
-        <div className="rounded-card border border-cardGreenDark/20 overflow-hidden">
+        <div className="rounded-card border border-line bg-panel shadow-card overflow-hidden">
           <table className="w-full text-[13.5px]">
             <thead className="bg-pineLight text-ink">
               <tr>
@@ -236,7 +236,7 @@ function FunctionalPositionTab() {
             </thead>
             <tbody>
               {items.map((f) => (
-                <tr key={f.id} className="border-t border-cardGreenDark/10">
+                <tr key={f.id} className="border-t border-line">
                   <td className="px-4 py-2.5 text-ink">{f.id}</td>
                   <td className="px-4 py-2.5 text-muted">{f.name}</td>
                   <td className="px-4 py-2.5 text-muted">{f.job_class_name ?? "-"}</td>
@@ -260,13 +260,13 @@ export default function JabatanPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display text-[28px] leading-tight text-ink mb-6">Jabatan</h1>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-6">Jabatan</h1>
 
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab("kelas")}
           className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
-            tab === "kelas" ? "bg-cardGreen text-canvas" : "border border-cardGreenDark/30 text-ink"
+            tab === "kelas" ? "bg-cardGreen text-canvas" : "border border-line text-ink"
           }`}
         >
           Kelas Jabatan
@@ -274,7 +274,7 @@ export default function JabatanPage() {
         <button
           onClick={() => setTab("fungsional")}
           className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
-            tab === "fungsional" ? "bg-cardGreen text-canvas" : "border border-cardGreenDark/30 text-ink"
+            tab === "fungsional" ? "bg-cardGreen text-canvas" : "border border-line text-ink"
           }`}
         >
           Jabatan Fungsional
