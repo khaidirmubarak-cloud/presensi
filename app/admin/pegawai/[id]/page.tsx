@@ -416,10 +416,7 @@ export default function PegawaiDetailPage() {
           </span>
         </div>
         <p className="text-[12.5px] text-muted mb-4">
-          Pegawai masuk ke dashboard Laporan Kinerja Harian dengan akun SIAKAD atau Google. Nomor
-          WhatsApp hanya untuk mengirim LKH lewat WA dan menerima notifikasi — biasanya dihubungkan
-          sendiri oleh pegawai lewat &ldquo;Hubungkan WhatsApp&rdquo; di dashboard. Isi di sini untuk
-          membantu pegawai; nomor yang disimpan langsung aktif.
+          Nomor WhatsApp untuk mengirim LKH melalui aplikasi WhatsApp.
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block w-full sm:w-72">
@@ -456,9 +453,8 @@ export default function PegawaiDetailPage() {
           </span>
         </div>
         <p className="text-[12.5px] text-muted mb-4">
-          Nomor pegawai di mesin fingerprint. Scan mesin hanya terhitung sebagai presensi pegawai ini
-          kalau ID-nya cocok. ID finger berasal dari aplikasi cobakinerja (data Sevima tidak memuat ID
-          finger); pegawai tanpa ID finger tercatat &ldquo;Tanpa Keterangan&rdquo; meski sudah scan.
+          ID Finger berasal dari nomor yang tercatat pada mesin fingerprint. Jika terdapat ketidaksesuaian
+          data, lakukan pencocokan pada database sumber (mesin fingerprint).
         </p>
         {form.finger_id != null && fingerInfo && (
           <p className="text-[12.5px] text-ink mb-4">
@@ -526,9 +522,8 @@ export default function PegawaiDetailPage() {
           </span>
         </div>
         <p className="text-[12.5px] text-muted mb-4">
-          Email yang bisa dipakai pegawai untuk &ldquo;Masuk dengan Google&rdquo; di dashboard Laporan Kinerja
-          Harian. Terisi otomatis dari data Sevima dan dari login akun SIAKAD; tambahkan manual bila email
-          Google pegawai belum tercatat.
+          Email yang digunakan untuk login dan terisi otomatis dari akun SIAKAD Cloud. Tambahkan manual bila
+          email belum tercatat.
         </p>
 
         {loginEmails.length > 0 && (

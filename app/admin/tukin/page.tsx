@@ -184,12 +184,6 @@ export default function TukinPage() {
     <div className="mx-auto max-w-6xl px-6 py-14">
       <header className="mb-8">
         <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Tunjangan Kinerja</h1>
-        <p className="mt-1.5 text-[14px] text-muted">
-          Perhitungan tunjangan kinerja bulanan berdasarkan nominal kelas jabatan/grade
-          non-ASN, dikurangi potongan awal untuk dosen serdos, lalu dipotong sesuai
-          keterlambatan/pulang cepat/cuti/alpa. Dokter dan Klinik dikecualikan dari
-          potongan; Tugas Belajar TUBE1/TUBE2 menggantikan perhitungan harian.
-        </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">

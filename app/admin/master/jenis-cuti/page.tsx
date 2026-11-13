@@ -112,12 +112,7 @@ export default function JenisCutiPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Jenis Cuti</h1>
-      <p className="text-[14px] text-muted mb-6">
-        Katalog jenis cuti/izin. Potongan tukin dipakai kalkulasi di menu Tukin. "Dihitung
-        uang makan" menandai jenis cuti yang tetap dianggap hadir untuk kalkulasi di menu
-        Uang Makan (mis. Surat Pernyataan Tanggung Jawab Mutlak, Absen Pusaka).
-      </p>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-6">Jenis Cuti</h1>
 
       <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <label className="block">

@@ -131,9 +131,6 @@ export default function TukinPegawaiPage() {
           <p className="mt-1 text-[13px] text-muted">
             {employee.nip ?? "-"}
             {employee.positionName ? ` · ${employee.positionName}` : ""}
-            {employee.jobClassAmount !== null
-              ? ` · Nilai Tunjangan Kinerja Rp${rupiah(employee.jobClassAmount)}`
-              : " · Belum ada nominal tunjangan kinerja"}
           </p>
         )}
       </header>

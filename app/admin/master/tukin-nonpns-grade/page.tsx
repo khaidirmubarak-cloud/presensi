@@ -75,11 +75,7 @@ export default function TukinNonpnsGradePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Grade Tukin Non-ASN</h1>
-      <p className="text-[13px] text-muted mb-6">
-        Dipakai untuk pegawai non-ASN (driver, satpam, petugas klinik, dokter, staf mahad, dll.)
-        yang perhitungan tukin-nya beda alur dari pegawai ASN.
-      </p>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-6">Grade Tukin Non-ASN</h1>
 
       <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
         <label className="block">

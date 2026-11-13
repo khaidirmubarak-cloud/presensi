@@ -108,13 +108,7 @@ export default function PotonganTukinPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
-      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Potongan Tukin</h1>
-      <p className="text-[14px] text-muted mb-6">
-        Aturan persentase potongan tukin yang dipakai kalkulasi di menu Tukin -- tier
-        keterlambatan/pulang cepat berdasarkan menit, dan persentase untuk hari kerja
-        tanpa data presensi sama sekali (alpa). Potongan cuti/izin diatur per jenis di
-        menu Jenis Cuti.
-      </p>
+      <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-6">Potongan Tukin</h1>
 
       <section className="rounded-card bg-panel border border-line p-5 mb-8">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-4">
