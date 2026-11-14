@@ -168,7 +168,7 @@ export default function UangMakanPage() {
   const totalNet = calculations.reduce((sum, c) => sum + Number(c.net_amount), 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-14">
+    <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
       <header className="mb-8">
         <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Uang Makan</h1>
       </header>

@@ -108,7 +108,7 @@ export default function GajiPokokPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-14">
+    <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
       <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-2">Gaji Pokok</h1>
       <p className="text-[14px] text-muted mb-6">
         Nominal gaji pokok per golongan x masa kerja. Dipakai untuk menghitung "potongan

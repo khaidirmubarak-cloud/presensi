@@ -111,7 +111,7 @@ export default function JenisCutiPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-14">
+    <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
       <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink mb-6">Jenis Cuti</h1>
 
       <form onSubmit={handleSubmit} className="rounded-card bg-panel border border-line p-5 mb-8 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">

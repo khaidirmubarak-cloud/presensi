@@ -102,7 +102,7 @@ export default function PresensiPegawaiPage() {
   }, {});
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-14">
+    <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
 
       <header className="mb-8">
         <Link href="/admin/presensi" className="text-[13px] font-semibold text-pine hover:underline">

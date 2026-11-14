@@ -191,7 +191,7 @@ export default function PresensiPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-14">
+    <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
 
       <header className="mb-8">
         <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Presensi</h1>

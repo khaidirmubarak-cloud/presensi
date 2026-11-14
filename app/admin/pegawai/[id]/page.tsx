@@ -388,14 +388,14 @@ export default function PegawaiDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-14">
+      <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
         <p className="text-[14px] text-muted">Memuat…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-14">
+    <div className="mx-auto w-full max-w-screen-2xl px-5 py-14 md:py-10 lg:px-10">
 
       <header className="mb-8">
         <Link href="/admin/pegawai" className="text-[13px] font-semibold text-pine hover:underline">
