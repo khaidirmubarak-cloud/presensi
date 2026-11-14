@@ -592,9 +592,6 @@ export default function PegawaiDetailPage() {
             <Field label="NIDN">
               <input className={inputClass} value={form.nidn ?? ""} onChange={(e) => set("nidn", e.target.value)} />
             </Field>
-            <Field label="Departemen">
-              <input className={inputClass} value={form.department ?? ""} onChange={(e) => set("department", e.target.value)} />
-            </Field>
             <Field label="Tanggal lahir">
               <input type="date" className={inputClass} value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} />
             </Field>

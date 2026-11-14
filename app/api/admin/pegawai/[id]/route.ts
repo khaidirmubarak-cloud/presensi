@@ -97,7 +97,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const nip = cleanNip(body.nip);
-  const department = typeof body.department === "string" ? body.department.trim() : "";
 
   if (!name || !nip) {
     return NextResponse.json({ error: "Nama lengkap dan NIP wajib diisi." }, { status: 400 });
@@ -136,12 +135,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    await execute("UPDATE employees SET name = ?, nip = ?, department = ? WHERE id = ?", [
-      name,
-      nip,
-      department || null,
-      params.id,
-    ]);
+    // Kolom department (jabatan lama dari cobakinerja) tidak lagi diedit dari form -- dibiarkan
+    // apa adanya di database; unit & jabatan resmi ada di employee_profiles.
+    await execute("UPDATE employees SET name = ?, nip = ? WHERE id = ?", [name, nip, params.id]);
 
     await execute(
       `INSERT INTO employee_profiles (
