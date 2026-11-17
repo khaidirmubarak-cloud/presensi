@@ -434,7 +434,7 @@ export default function PegawaiDetailPage() {
             disabled={akunSaving}
             className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
-            {akunSaving ? "Menyimpan…" : "Simpan nomor"}
+            {akunSaving ? "Menyimpan…" : "Simpan"}
           </button>
         </div>
         {akunError && <p className="mt-3 text-[13px] text-red-700">{akunError}</p>}
@@ -488,7 +488,7 @@ export default function PegawaiDetailPage() {
             disabled={fingerBusy !== null}
             className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
-            {fingerBusy === "simpan" ? "Menyimpan…" : fingerInput.trim() ? "Simpan ID finger" : "Kosongkan ID finger"}
+            {fingerBusy === "simpan" ? "Menyimpan…" : fingerInput.trim() ? "Simpan" : "Kosongkan ID finger"}
           </button>
         </div>
         {fingerCheck && (
@@ -569,7 +569,7 @@ export default function PegawaiDetailPage() {
             disabled={emailBusy || !newEmail.trim()}
             className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
-            {emailBusy ? "Menyimpan…" : "Tambah email"}
+            {emailBusy ? "Menyimpan…" : "Tambah"}
           </button>
         </div>
         {emailError && <p className="mt-3 text-[13px] text-red-700">{emailError}</p>}
@@ -748,7 +748,7 @@ export default function PegawaiDetailPage() {
           disabled={deleting}
           className="rounded-full border border-red-300 px-5 py-2 text-[13px] font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60"
         >
-          {deleting ? "Menghapus…" : "Hapus pegawai"}
+          {deleting ? "Menghapus…" : "Hapus"}
         </button>
         {deleteError && <p className="mt-3 text-[13px] text-red-700">{deleteError}</p>}
       </section>
