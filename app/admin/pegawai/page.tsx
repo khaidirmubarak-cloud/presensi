@@ -128,6 +128,7 @@ export default function AdminPegawaiPage() {
         `${data.created} pegawai baru ditambahkan, ${data.skipped} sudah terdaftar (dilewati)` +
           (data.emailsLinked ? `, ${data.emailsLinked} email login (Google) baru dihubungkan` : "") +
           (data.fingersLinked ? `, ${data.fingersLinked} ID finger diisi dari Sevima` : "") +
+          (data.sevimaIdsSaved ? `, ${data.sevimaIdsSaved} ID pegawai Sevima disimpan` : "") +
           (data.skippedInactive ? `, ${data.skippedInactive} akun tidak aktif di Sevima tidak diimpor` : "") +
           "." +
           (data.emailNote ? ` ${data.emailNote}` : ""),

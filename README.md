@@ -259,6 +259,12 @@ mesin dan aplikasi Sevima otomatis tergabung (mis. masuk di mesin, pulang di apl
 **Deploy pertama -- urutan wajib**: jalankan `sql/012_sevima_presensi.sql` di database
 bersama SEBELUM deploy presensi maupun dashboard-kinerja versi ini; kalau kolomnya belum ada,
 semua halaman presensi/tukin/uang makan/LKH akan error.
+Lalu `sql/013_sevima_id.sql` (kolom `employees.sevima_id` = `id_pegawai` Sevima) SEBELUM deploy
+presensi versi yang memakainya. Kolom ini diisi "Sync dari Sevima"; dengan itu menarik presensi
+satu pegawai cukup satu permintaan, tanpa mengambil seluruh daftar pegawai Sevima.
+
+Tombol "Tarik dari Sevima" di halaman Presensi menarik pegawai yang **dicentang** di tabel
+(yang presensi Sevima-nya diakui); tanpa centang, semua pegawai yang diakui.
 
 Cara menjalankan (semua harus dari server yang IP-nya di-whitelist Sevima):
 

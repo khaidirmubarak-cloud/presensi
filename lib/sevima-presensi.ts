@@ -33,9 +33,10 @@ const WITA_OFFSET_MS = 8 * 60 * 60 * 1000;
 export type SevimaPresensiSyncResult = {
   dryRun: boolean;
   dates: string[];
-  pegawaiDicek: number; // pegawai aktif Sevima yang finger-nya terdaftar di sistem ini
-  fingerBelumTerdaftar: number; // punya no_akun_finger di Sevima tapi finger_id itu tidak dipakai pegawai manapun di sini
-  tidakDiakui: number; // pegawai terdaftar yang presensi Sevima-nya tidak diakui admin -- dilewati
+  pegawaiDicek: number; // pegawai yang benar-benar ditarik dari Sevima
+  tidakDiakui: number; // pegawai dipilih yang presensi Sevima-nya tidak diakui admin -- dilewati
+  tanpaFinger: number; // pegawai diakui tapi belum punya ID finger -- dilewati
+  tidakDitemukanDiSevima: number; // pegawai diakui yang ID finger-nya tidak ada di data Sevima -- dilewati
   permintaan: number;
   gagal: number;
   gagalContoh: { sevimaId: number; date: string; status: number }[];
@@ -84,15 +85,17 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
 
 export async function syncSevimaPresensi(
   dates: string[],
-  opts: { dryRun?: boolean; employeeId?: string } = {},
+  // employeeIds: hanya pegawai ini (mis. yang dicentang admin); kosong = semua pegawai yang diakui.
+  opts: { dryRun?: boolean; employeeIds?: string[] } = {},
 ): Promise<SevimaPresensiSyncResult> {
   const dryRun = !!opts.dryRun;
   const result: SevimaPresensiSyncResult = {
     dryRun,
     dates,
     pegawaiDicek: 0,
-    fingerBelumTerdaftar: 0,
     tidakDiakui: 0,
+    tanpaFinger: 0,
+    tidakDitemukanDiSevima: 0,
     permintaan: 0,
     gagal: 0,
     gagalContoh: [],
@@ -105,30 +108,51 @@ export async function syncSevimaPresensi(
   };
   if (dates.length === 0) return result;
 
-  const local = await query<{ id: string; name: string; finger_id: number; sevima_presensi_allowed: number }>(
-    `SELECT id, name, finger_id, sevima_presensi_allowed FROM employees
-     WHERE finger_id IS NOT NULL${opts.employeeId ? " AND id = ?" : ""}`,
-    opts.employeeId ? [opts.employeeId] : [],
+  type LocalRow = {
+    id: string;
+    name: string;
+    finger_id: number | null;
+    sevima_id: number | null;
+    sevima_presensi_allowed: number;
+  };
+  const ids = opts.employeeIds && opts.employeeIds.length > 0 ? opts.employeeIds : null;
+  const local = await query<LocalRow>(
+    `SELECT id, name, finger_id, sevima_id, sevima_presensi_allowed FROM employees WHERE ${
+      ids ? `id IN (${ids.map(() => "?").join(",")})` : "sevima_presensi_allowed = 1"
+    }`,
+    ids ?? [],
   );
-  const localByFinger = new Map(local.map((r) => [Number(r.finger_id), r]));
 
-  const sevima = (await fetchSevimaEmployeesCached()).filter((e) => e.active && e.fingerId !== null && e.sevimaId > 0);
+  const candidates: LocalRow[] = [];
+  for (const r of local) {
+    if (Number(r.sevima_presensi_allowed) !== 1) result.tidakDiakui++;
+    else if (r.finger_id === null) result.tanpaFinger++;
+    else candidates.push(r);
+  }
+
+  // id_pegawai Sevima biasanya sudah tersimpan (diisi "Sync dari Sevima"). Hanya bila ada yang
+  // belum, daftar pegawai Sevima diambil (bertembolok) untuk mencarinya lewat ID finger, lalu
+  // disimpan supaya penarikan berikutnya tidak perlu mengambil daftar lagi.
+  const missing = candidates.filter((c) => !c.sevima_id);
+  if (missing.length > 0) {
+    const sevimaIdByFinger = new Map<number, number>();
+    for (const e of await fetchSevimaEmployeesCached()) {
+      if (e.active && e.fingerId !== null && e.sevimaId > 0 && !sevimaIdByFinger.has(e.fingerId)) {
+        sevimaIdByFinger.set(e.fingerId, e.sevimaId);
+      }
+    }
+    for (const c of missing) {
+      const sevimaId = sevimaIdByFinger.get(Number(c.finger_id));
+      if (!sevimaId) continue;
+      c.sevima_id = sevimaId;
+      if (!dryRun) await execute("UPDATE employees SET sevima_id = ? WHERE id = ?", [sevimaId, c.id]);
+    }
+  }
+
   const targets: { sevimaId: number; fingerId: number; name: string }[] = [];
-  const seenFinger = new Set<number>();
-  for (const e of sevima) {
-    const fingerId = e.fingerId!;
-    if (seenFinger.has(fingerId)) continue;
-    seenFinger.add(fingerId);
-    const owner = localByFinger.get(fingerId);
-    if (!owner) {
-      if (!opts.employeeId) result.fingerBelumTerdaftar++;
-      continue;
-    }
-    if (Number(owner.sevima_presensi_allowed) !== 1) {
-      result.tidakDiakui++;
-      continue;
-    }
-    targets.push({ sevimaId: e.sevimaId, fingerId, name: owner.name });
+  for (const c of candidates) {
+    if (c.sevima_id) targets.push({ sevimaId: Number(c.sevima_id), fingerId: Number(c.finger_id), name: c.name });
+    else result.tidakDitemukanDiSevima++;
   }
   result.pegawaiDicek = targets.length;
   if (targets.length === 0) return result;

@@ -39,9 +39,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     } else {
       const today = todayWita();
       try {
-        const r = await syncSevimaPresensi(listDates(`${today.slice(0, 7)}-01`, today)!, { employeeId: params.id });
+        const r = await syncSevimaPresensi(listDates(`${today.slice(0, 7)}-01`, today)!, { employeeIds: [params.id] });
         pulled = { jamBaru: r.jamBaru, recordAdaJam: r.recordAdaJam, gagal: r.gagal };
-        if (r.pegawaiDicek === 0) pullNote = "ID finger pegawai ini tidak ditemukan di data Sevima (no_akun_finger).";
+        if (r.tidakDitemukanDiSevima > 0) pullNote = "ID finger pegawai ini tidak ditemukan di data Sevima (no_akun_finger).";
       } catch (err) {
         console.error("Tarik presensi Sevima saat pengakuan gagal:", err);
         pullNote = `Pengakuan tersimpan, tetapi gagal menarik presensi dari Sevima (${err instanceof Error ? err.message : String(err)}).`;

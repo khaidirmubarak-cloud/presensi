@@ -5,7 +5,8 @@ import { listDates, syncSevimaPresensi, todayWita } from "../../../../../lib/sev
 export const dynamic = "force-dynamic";
 
 // Tarik presensi aplikasi Sevima ke fingerprint_scans (lib/sevima-presensi.ts), dipicu admin
-// dari halaman Presensi. dryRun = pratinjau tanpa menulis apa pun. Rentang dibatasi pendek
+// dari halaman Presensi. employeeIds = pegawai yang dicentang (kosong = semua yang diakui);
+// yang dicentang tapi tidak diakui dilewati. dryRun = pratinjau tanpa menulis apa pun. Rentang dibatasi pendek
 // supaya request tidak kena timeout proxy cPanel (1 permintaan Sevima per pegawai per hari);
 // untuk rentang panjang pakai `npm run sync:sevima-presensi` di server.
 const MAX_ADMIN_DAYS = 3;
@@ -22,7 +23,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = (await req.json().catch(() => ({}))) as { from?: string; to?: string; dryRun?: boolean };
+  const body = (await req.json().catch(() => ({}))) as {
+    from?: string;
+    to?: string;
+    dryRun?: boolean;
+    employeeIds?: unknown;
+  };
+  const employeeIds = Array.isArray(body.employeeIds)
+    ? body.employeeIds.filter((v): v is string => typeof v === "string" && v.length > 0).slice(0, 1000)
+    : [];
   const from = body.from || todayWita();
   const dates = listDates(from, body.to || from);
   if (!dates) return NextResponse.json({ error: "Tanggal tidak valid (format YYYY-MM-DD)." }, { status: 400 });
@@ -31,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await syncSevimaPresensi(dates, { dryRun: !!body.dryRun }));
+    return NextResponse.json(await syncSevimaPresensi(dates, { dryRun: !!body.dryRun, employeeIds }));
   } catch (err) {
     console.error("Sync presensi Sevima gagal:", err);
     // Penyebab asli ditampilkan ke admin (bukan cuma di log) -- log aplikasi di host cPanel

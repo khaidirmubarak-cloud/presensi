@@ -136,11 +136,25 @@ export async function POST() {
   // ada tidak pernah ditimpa -- perbedaan dilaporkan ke admin untuk diputuskan di halaman
   // detail pegawai (lihat lib/finger.ts), karena scan mesin historis tercatat per finger_id.
   let fingersLinked = 0;
+  let sevimaIdsSaved = 0;
   const fingerConflicts: { id: string; name: string; current: number | null; sevima: number; usedBy: string | null }[] = [];
   {
-    const fingerRows = await query<{ id: string; name: string; finger_id: number | null }>(
-      "SELECT id, name, finger_id FROM employees",
+    const fingerRows = await query<{ id: string; name: string; finger_id: number | null; sevima_id: number | null }>(
+      "SELECT id, name, finger_id, sevima_id FROM employees",
     );
+    // id_pegawai Sevima -> employees.sevima_id, supaya penarikan presensi per pegawai cukup satu
+    // permintaan tanpa mengambil daftar pegawai Sevima (lib/sevima-presensi.ts).
+    {
+      const byIdRow = new Map(fingerRows.map((r) => [r.id, r]));
+      for (const emp of activeEmployees) {
+        const employeeId = findExisting(emp);
+        const row = employeeId ? byIdRow.get(employeeId) : undefined;
+        if (!row || !(emp.sevimaId > 0) || Number(row.sevima_id) === emp.sevimaId) continue;
+        await execute("UPDATE employees SET sevima_id = ? WHERE id = ?", [emp.sevimaId, row.id]);
+        row.sevima_id = emp.sevimaId;
+        sevimaIdsSaved++;
+      }
+    }
     const byId = new Map(fingerRows.map((r) => [r.id, r]));
     const ownerByFinger = new Map<number, { id: string; name: string }>();
     for (const r of fingerRows) if (r.finger_id !== null) ownerByFinger.set(Number(r.finger_id), r);
@@ -211,5 +225,6 @@ export async function POST() {
     emailNote,
     fingersLinked,
     fingerConflicts,
+    sevimaIdsSaved,
   });
 }

@@ -166,7 +166,12 @@ export default function PresensiPage() {
       const res = await fetch("/api/admin/presensi/sync-sevima", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: date, to: date, dryRun }),
+        body: JSON.stringify({
+          from: date,
+          to: date,
+          dryRun,
+          employeeIds: selected.size > 0 ? Array.from(selected.keys()) : undefined,
+        }),
       });
       const d = await res.json().catch(() => null);
       if (!res.ok || !d) {
@@ -179,7 +184,9 @@ export default function PresensiPage() {
           `${d.jamBaru} jam ${dryRun ? "akan " : ""}ditambahkan, ${d.jamSudahAda} sudah ada` +
           (d.dilewatiDekatScanMesin ? `, ${d.dilewatiDekatScanMesin} dilewati (sama dengan scan mesin)` : "") +
           (d.barisLamaDihapus ? `, ${d.barisLamaDihapus} jam lama ${dryRun ? "akan " : ""}diganti koreksi Sevima` : "") +
-          (d.fingerBelumTerdaftar ? `, ${d.fingerBelumTerdaftar} ID finger Sevima belum terdaftar di sini` : "") +
+          (d.tidakDiakui ? `, ${d.tidakDiakui} dilewati karena presensi Sevima-nya tidak diakui` : "") +
+          (d.tanpaFinger ? `, ${d.tanpaFinger} belum punya ID finger` : "") +
+          (d.tidakDitemukanDiSevima ? `, ${d.tidakDitemukanDiSevima} ID finger-nya tidak ada di data Sevima` : "") +
           (d.gagal ? `, ${d.gagal} permintaan gagal` : "") +
           ".",
       );
@@ -241,7 +248,10 @@ export default function PresensiPage() {
       <section className="rounded-card bg-panel border border-line shadow-card p-5 mb-6">
         <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-3">Presensi aplikasi Sevima</p>
         <p className="text-[13px] text-muted mb-3">
-          Gabungkan jam masuk/keluar dari aplikasi Sevima tanggal {date} ke data presensi mesin.
+          Gabungkan jam masuk/keluar dari aplikasi Sevima tanggal {date} ke data presensi mesin —{" "}
+          {selected.size > 0
+            ? `hanya ${selected.size} pegawai yang dicentang (yang presensi Sevima-nya diakui).`
+            : "semua pegawai yang presensi Sevima-nya diakui. Centang pegawai di tabel untuk menarik sebagian saja."}
         </p>
         {sevimaError && <p className="text-[13px] text-red-700 mb-3">{sevimaError}</p>}
         {sevimaMessage && <p className="text-[13px] text-cardGreenDark mb-3">{sevimaMessage}</p>}
@@ -260,7 +270,11 @@ export default function PresensiPage() {
             disabled={sevimaBusy !== null}
             className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
           >
-            {sevimaBusy === "sync" ? "Menarik data…" : "Tarik dari Sevima"}
+            {sevimaBusy === "sync"
+              ? "Menarik data…"
+              : selected.size > 0
+                ? `Tarik dari Sevima (${selected.size} dicentang)`
+                : "Tarik dari Sevima"}
           </button>
         </div>
       </section>
