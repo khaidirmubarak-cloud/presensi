@@ -244,7 +244,7 @@ export type SevimaAttendanceDay = {
 
 export type SevimaAttendanceFetch =
   | { ok: true; day: SevimaAttendanceDay | null } // null = tidak ada record hari itu
-  | { ok: false; status: number };
+  | { ok: false; status: number; detail: string };
 
 type SevimaAttendanceAttributes = {
   no_akun_finger?: string | number | null;
@@ -265,9 +265,22 @@ function cleanClock(v: unknown): string | null {
 export async function fetchSevimaAttendanceDay(sevimaId: number, date: string): Promise<SevimaAttendanceFetch> {
   const url = `${sevimaBaseUrl()}/siakadcloud/v1/presensi-pegawai/${sevimaId}-${date}`;
   const res = await sevimaGet(url, 20000);
-  if (!res) return { ok: false, status: 0 };
+  if (!res) return { ok: false, status: 0, detail: "tidak dapat terhubung ke Sevima" };
   if (res.status === 404) return { ok: true, day: null };
-  if (!res.ok) return { ok: false, status: res.status };
+  if (!res.ok) {
+    // Body error Sevima: {"errors":{"code":...,"detail":"..."}} -- ditampilkan ke admin supaya
+    // penyebab (izin API key, format, batas laju) langsung terlihat.
+    const text = await res.text().catch(() => "");
+    let detail = text.slice(0, 200);
+    try {
+      const j = JSON.parse(text) as { errors?: { detail?: string } | { detail?: string }[]; message?: string };
+      const e = Array.isArray(j.errors) ? j.errors[0] : j.errors;
+      detail = e?.detail || j.message || detail;
+    } catch {
+      // bukan JSON -- pakai potongan teks apa adanya
+    }
+    return { ok: false, status: res.status, detail };
+  }
 
   // Bentuk record sama dengan endpoint lain ({id, attributes}), kadang dibungkus "data"
   // (objek atau array) -- terima semuanya, sama seperti lib/sevimaAuth.ts di dashboard-kinerja.

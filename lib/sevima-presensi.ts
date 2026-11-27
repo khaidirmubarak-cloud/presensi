@@ -39,7 +39,7 @@ export type SevimaPresensiSyncResult = {
   tidakDitemukanDiSevima: number; // pegawai diakui yang ID finger-nya tidak ada di data Sevima -- dilewati
   permintaan: number;
   gagal: number;
-  gagalContoh: { sevimaId: number; date: string; status: number }[];
+  gagalContoh: { sevimaId: number; date: string; status: number; detail: string }[];
   recordAdaJam: number; // record Sevima yang punya jam masuk/keluar
   jamBaru: number; // baris SEVIMA baru (dryRun: yang AKAN ditambahkan)
   jamSudahAda: number;
@@ -168,7 +168,7 @@ export async function syncSevimaPresensi(
   for (const { job, res } of fetched) {
     if (!res.ok) {
       result.gagal++;
-      if (result.gagalContoh.length < 5) result.gagalContoh.push({ sevimaId: job.sevimaId, date: job.date, status: res.status });
+      if (result.gagalContoh.length < 5) result.gagalContoh.push({ sevimaId: job.sevimaId, date: job.date, status: res.status, detail: res.detail });
       continue;
     }
     if (!res.day) continue;

@@ -188,7 +188,12 @@ export default function PresensiPage() {
           (d.tanpaFinger ? `, ${d.tanpaFinger} belum punya ID finger` : "") +
           (d.tidakDitemukanDiSevima ? `, ${d.tidakDitemukanDiSevima} ID finger-nya tidak ada di data Sevima` : "") +
           (d.gagal ? `, ${d.gagal} permintaan gagal` : "") +
-          ".",
+          "." +
+          (d.gagalContoh?.[0]
+            ? ` Contoh gagal: presensi-pegawai/${d.gagalContoh[0].sevimaId}-${d.gagalContoh[0].date} → HTTP ${d.gagalContoh[0].status}` +
+              (d.gagalContoh[0].detail ? ` (${d.gagalContoh[0].detail})` : "") +
+              "."
+            : ""),
       );
       if (!dryRun) load();
     } catch {
