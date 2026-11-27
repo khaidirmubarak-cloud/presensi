@@ -38,6 +38,9 @@ export default function AdminPegawaiPage() {
     { id: string; name: string; nip: string | null; sevimaStatus: string; origin: string }[]
   >([]);
 
+  const [fingerConflicts, setFingerConflicts] = useState<
+    { id: string; name: string; current: number | null; sevima: number; usedBy: string | null }[]
+  >([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -109,6 +112,7 @@ export default function AdminPegawaiPage() {
     setSyncError("");
     setSyncMessage("");
     setInactiveExisting([]);
+    setFingerConflicts([]);
     setSyncing(true);
 
     try {
@@ -123,11 +127,13 @@ export default function AdminPegawaiPage() {
       setSyncMessage(
         `${data.created} pegawai baru ditambahkan, ${data.skipped} sudah terdaftar (dilewati)` +
           (data.emailsLinked ? `, ${data.emailsLinked} email login (Google) baru dihubungkan` : "") +
+          (data.fingersLinked ? `, ${data.fingersLinked} ID finger diisi dari Sevima` : "") +
           (data.skippedInactive ? `, ${data.skippedInactive} akun tidak aktif di Sevima tidak diimpor` : "") +
           "." +
           (data.emailNote ? ` ${data.emailNote}` : ""),
       );
       setInactiveExisting(data.inactiveExisting ?? []);
+      setFingerConflicts(data.fingerConflicts ?? []);
       loadPegawai();
     } catch {
       setSyncError("Terjadi kesalahan jaringan.");
@@ -166,6 +172,27 @@ export default function AdminPegawaiPage() {
                   </Link>
                   <span>
                     {r.nip ?? "-"} · {r.sevimaStatus} di Sevima · asal {r.origin}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {fingerConflicts.length > 0 && (
+          <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-[12.5px] font-semibold text-amber-900">
+              {fingerConflicts.length} pegawai punya ID finger yang berbeda dengan Sevima — tidak diubah otomatis,
+              periksa di halaman detail pegawai:
+            </p>
+            <ul className="mt-2 space-y-1">
+              {fingerConflicts.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-amber-900">
+                  <Link href={`/admin/pegawai/${r.id}`} className="font-semibold underline">
+                    {r.name}
+                  </Link>
+                  <span>
+                    di sini {r.current ?? "kosong"} · di Sevima {r.sevima}
+                    {r.usedBy ? ` (ID ${r.sevima} sedang dipakai ${r.usedBy})` : ""}
                   </span>
                 </li>
               ))}

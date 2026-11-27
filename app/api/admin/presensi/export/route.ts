@@ -11,6 +11,7 @@ import {
   type HolidayInfo,
   type LeaveTypeInfo,
 } from "../../../../../lib/presensi-export";
+import { SCAN_EMPLOYEE_JOIN } from "../../../../../lib/finger";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
     ),
     query<{ employee_id: string; scanned_at: string }>(
       `SELECT e.id AS employee_id, fs.scanned_at FROM fingerprint_scans fs
-       JOIN employees e ON e.finger_id = fs.finger_id
+       ${SCAN_EMPLOYEE_JOIN}
        WHERE e.id IN (${idPlaceholders}) AND fs.scanned_at >= ? AND fs.scanned_at < ?`,
       [...ids, start, end],
     ),

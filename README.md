@@ -224,6 +224,50 @@ INSERT INTO fingerprint_scans (finger_id, scanned_at, source) VALUES (?, ?, ?)
 - `source` -- bebas, dipakai buat audit (mis. `'MESIN'`).
 - Jangan ubah nama tabel/3 kolom ini tanpa koordinasi ulang dengan konfigurasi tool sinkron.
 
+## Presensi aplikasi Sevima (digabung dengan mesin)
+
+Jam masuk/keluar dari aplikasi presensi Sevima ditarik lewat API
+`GET /siakadcloud/v1/presensi-pegawai/{id_pegawai}-{YYYY-MM-DD}` lalu ditulis ke
+`fingerprint_scans` dengan `source = 'SEVIMA'` (`lib/sevima-presensi.ts`). Karena semua
+perhitungan memakai scan pertama = masuk dan terakhir = pulang tanpa melihat sumber, presensi
+mesin dan aplikasi Sevima otomatis tergabung (mis. masuk di mesin, pulang di aplikasi).
+
+- **Hanya untuk pegawai yang diakui admin kepegawaian.** Kebijakan saat ini tidak mengakui
+  presensi aplikasi Sevima untuk semua pegawai, jadi tiap pegawai punya pengakuan sendiri
+  (`employees.sevima_presensi_allowed`, default tidak diakui) di halaman detail pegawai ->
+  "Presensi aplikasi Sevima". Hanya pegawai yang diakui yang ditarik dari Sevima, dan semua
+  perhitungan (status, tukin, uang makan, ekspor, LKH) menyaring hal yang sama lewat
+  `SCAN_EMPLOYEE_JOIN` (`lib/finger.ts`, disalin di `dashboard-kinerja/lib/attendance.ts`).
+  Mengakui langsung menarik presensi bulan berjalan pegawai itu; mencabut langsung membuat scan
+  Sevima-nya tidak dihitung lagi (data tidak dihapus, jadi bisa diakui ulang).
+- **Label sumber** di halaman presensi (admin & LKH): "Fingerprint", "Sevima", atau
+  "Fingerprint + Sevima" bila masuk dan pulang berasal dari sumber berbeda.
+- **Pencocokan pegawai**: `no_akun_finger` Sevima = ID di mesin = `employees.finger_id`.
+  "Sync dari Sevima" di menu Pegawai kini juga mengisi `finger_id` yang masih kosong dari
+  `no_akun_finger`; nilai yang sudah ada tidak ditimpa, perbedaan ditampilkan sebagai konflik.
+- **Waktu**: jam Sevima WITA dikurangi 8 jam (kolom wajib UTC).
+- **Anti-dobel**: jam Sevima yang berjarak <= 2 menit dari scan mesin di finger yang sama
+  dilewati; dijalankan berulang aman (`UNIQUE(finger_id, scanned_at)`).
+- **Koreksi**: kalau jam di Sevima berubah, baris `SEVIMA` lama untuk hari itu dihapus dan
+  diganti. Baris dari sumber lain tidak pernah disentuh.
+- **Biaya API**: 1 permintaan per pegawai (yang punya finger) per hari. Paralelisme diatur
+  `SEVIMA_CONCURRENCY` (default 6).
+
+**Deploy pertama -- urutan wajib**: jalankan `sql/012_sevima_presensi.sql` di database
+bersama SEBELUM deploy presensi maupun dashboard-kinerja versi ini; kalau kolomnya belum ada,
+semua halaman presensi/tukin/uang makan/LKH akan error.
+
+Cara menjalankan (semua harus dari server yang IP-nya di-whitelist Sevima):
+
+1. Manual: halaman Presensi -> "Pratinjau" (tidak menulis apa pun) lalu "Tarik dari Sevima"
+   untuk tanggal yang dipilih.
+2. Terjadwal (cron cPanel), mis. tiap jam 08:00-18:00 dan sekali 23:30:
+   ```
+   curl -s -X POST -H "x-internal-secret: $KINERJA_INTERNAL_SECRET" https://<domain-presensi>/api/internal/sevima-presensi
+   ```
+   Tanpa parameter = hari ini (WITA); `?from=YYYY-MM-DD&to=YYYY-MM-DD` maks 3 hari, `&dryRun=1` pratinjau.
+3. Backfill rentang panjang: `npm run sync:sevima-presensi -- 2026-11-01 2026-11-27 [--dry-run]`.
+
 ## 3. Deploy ke VPS (cPanel)
 
 Sama seperti `dashboard-kinerja` -- "Setup Node.js App" terpisah, subdomain sendiri,

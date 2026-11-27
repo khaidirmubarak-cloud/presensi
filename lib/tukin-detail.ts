@@ -9,6 +9,7 @@ import {
   type SalaryScale,
 } from "./tukin";
 import { DAY_NAMES_ID } from "./calendar";
+import { SCAN_EMPLOYEE_JOIN } from "./finger";
 
 type PingRow = { created_at: string; within_radius: number };
 type ScanRow = { scanned_at: string };
@@ -65,7 +66,7 @@ export async function computeTukinDetail(employeeId: string, period: string) {
       ),
       query<ScanRow>(
         `SELECT fs.scanned_at FROM fingerprint_scans fs
-         JOIN employees e ON e.finger_id = fs.finger_id
+         ${SCAN_EMPLOYEE_JOIN}
          WHERE e.id = ? AND fs.scanned_at >= ? AND fs.scanned_at < ?`,
         [employee.id, start, end],
       ),

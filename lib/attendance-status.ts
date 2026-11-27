@@ -16,6 +16,7 @@ export type AttendancePing = {
 // bisa diandalkan daripada WA-ping (radius GPS, adopsi rendah) -- lihat computeDailyStatus.
 export type FingerprintScan = {
   scanned_at: string; // ISO UTC
+  source?: string; // fingerprint_scans.source -- 'SEVIMA' = aplikasi Sevima, selain itu mesin
 };
 
 export type DailyAttendance = {
@@ -60,7 +61,20 @@ export type AttendanceStatus =
   | "terlambat"
   | "pulang_cepat";
 
-export type AttendanceSource = "fingerprint" | "wa_ping" | null;
+// "sevima" = jam masuk & pulang dari aplikasi Sevima, "fingerprint_sevima" = campuran (mis. masuk
+// di mesin, pulang di aplikasi Sevima).
+export type AttendanceSource = "fingerprint" | "sevima" | "fingerprint_sevima" | "wa_ping" | null;
+
+// Sumber hari itu dari scan yang benar-benar dipakai sebagai jam masuk (pertama) dan pulang
+// (terakhir) -- scan di antaranya tidak memengaruhi label.
+export function scanSource(scans: FingerprintScan[]): AttendanceSource {
+  if (scans.length === 0) return null;
+  const sorted = [...scans].sort((a, b) => a.scanned_at.localeCompare(b.scanned_at));
+  const used = sorted.length >= 2 ? [sorted[0], sorted[sorted.length - 1]] : [sorted[0]];
+  const fromSevima = used.filter((s) => s.source === "SEVIMA").length;
+  if (fromSevima === 0) return "fingerprint";
+  return fromSevima === used.length ? "sevima" : "fingerprint_sevima";
+}
 
 // Label Indonesia dipakai bareng oleh UI (app/admin/presensi/page.tsx) dan export PDF/Excel
 // (lib/presensi-export.ts) -- satu sumber supaya tidak ada dua daftar label yang bisa
@@ -156,7 +170,7 @@ export function computeDailyStatus(
   // Fingerprint = sumber utama (keputusan awal arsitektur), WA-ping cuma pelengkap kalau
   // hari itu tidak ada scan mesin sama sekali.
   const fromFingerprint = deriveDailyAttendanceFromScans(fingerprintScans);
-  const sumber: AttendanceSource = fromFingerprint.jamMasuk ? "fingerprint" : pings.length > 0 ? "wa_ping" : null;
+  const sumber: AttendanceSource = fromFingerprint.jamMasuk ? scanSource(fingerprintScans) : pings.length > 0 ? "wa_ping" : null;
   const { jamMasuk, jamPulang } = fromFingerprint.jamMasuk ? fromFingerprint : deriveDailyAttendance(pings);
   if (!jamMasuk) {
     return { ...empty, status: "belum_ada_data" };

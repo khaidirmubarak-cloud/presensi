@@ -131,6 +131,56 @@ export async function POST() {
     emailNote = "Email login belum disinkronkan: tabel employee_login_emails belum dibuat (jalankan dashboard-kinerja/sql/003_employee_login_emails.sql).";
   }
 
+  // ID finger (no_akun_finger Sevima = ID di mesin) -> employees.finger_id, HANYA untuk pegawai
+  // yang finger_id-nya masih kosong dan ID itu belum dipakai pegawai lain. Nilai yang sudah
+  // ada tidak pernah ditimpa -- perbedaan dilaporkan ke admin untuk diputuskan di halaman
+  // detail pegawai (lihat lib/finger.ts), karena scan mesin historis tercatat per finger_id.
+  let fingersLinked = 0;
+  const fingerConflicts: { id: string; name: string; current: number | null; sevima: number; usedBy: string | null }[] = [];
+  {
+    const fingerRows = await query<{ id: string; name: string; finger_id: number | null }>(
+      "SELECT id, name, finger_id FROM employees",
+    );
+    const byId = new Map(fingerRows.map((r) => [r.id, r]));
+    const ownerByFinger = new Map<number, { id: string; name: string }>();
+    for (const r of fingerRows) if (r.finger_id !== null) ownerByFinger.set(Number(r.finger_id), r);
+
+    // ID finger yang dipakai lebih dari satu akun aktif di Sevima tidak bisa dipastikan pemiliknya.
+    const sevimaFingerCount = new Map<number, number>();
+    for (const emp of activeEmployees) {
+      if (emp.fingerId !== null) sevimaFingerCount.set(emp.fingerId, (sevimaFingerCount.get(emp.fingerId) ?? 0) + 1);
+    }
+
+    for (const emp of activeEmployees) {
+      if (emp.fingerId === null || (sevimaFingerCount.get(emp.fingerId) ?? 0) > 1) continue;
+      const employeeId = findExisting(emp);
+      const row = employeeId ? byId.get(employeeId) : undefined;
+      if (!row) continue;
+      const current = row.finger_id === null ? null : Number(row.finger_id);
+      if (current === emp.fingerId) continue;
+      const owner = ownerByFinger.get(emp.fingerId);
+      if (current === null && !owner) {
+        try {
+          const r = await execute("UPDATE employees SET finger_id = ? WHERE id = ? AND finger_id IS NULL", [emp.fingerId, row.id]);
+          if (r.affectedRows > 0) {
+            fingersLinked++;
+            ownerByFinger.set(emp.fingerId, row);
+            continue;
+          }
+        } catch {
+          // UNIQUE bentrok karena request bersamaan -- laporkan sebagai konflik di bawah.
+        }
+      }
+      fingerConflicts.push({
+        id: row.id,
+        name: row.name,
+        current,
+        sevima: emp.fingerId,
+        usedBy: owner && owner.id !== row.id ? owner.name : null,
+      });
+    }
+  }
+
   // Pegawai di sistem yang HANYA cocok dengan akun tidak aktif di Sevima (tidak ada akun aktif
   // yang cocok) -- dilaporkan ke admin untuk diputuskan (hapus / nonaktifkan), tidak diubah otomatis.
   const matchedByActive = new Set(activeEmployees.map(findExisting).filter(Boolean) as string[]);
@@ -159,5 +209,7 @@ export async function POST() {
     inactiveExisting,
     emailsLinked,
     emailNote,
+    fingersLinked,
+    fingerConflicts,
   });
 }

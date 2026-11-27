@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne, dbDatetimeToIso, toDbDatetime } from "../../../../../lib/db";
 import { getSession } from "../../../../../lib/auth";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange } from "../../../../../lib/attendance-status";
+import { SCAN_EMPLOYEE_JOIN } from "../../../../../lib/finger";
 
 export const dynamic = "force-dynamic";
 
 type PingRow = { created_at: string; within_radius: number };
-type ScanRow = { scanned_at: string };
+type ScanRow = { scanned_at: string; source: string };
 
 // Riwayat presensi satu pegawai untuk satu bulan -- pelengkap /api/admin/presensi (yang
 // menampilkan semua pegawai tapi cuma satu tanggal).
@@ -50,8 +51,8 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
       [employee.id, start, end],
     ),
     query<ScanRow>(
-      `SELECT fs.scanned_at FROM fingerprint_scans fs
-       JOIN employees e ON e.finger_id = fs.finger_id
+      `SELECT fs.scanned_at, fs.source FROM fingerprint_scans fs
+       ${SCAN_EMPLOYEE_JOIN}
        WHERE e.id = ? AND fs.scanned_at >= ? AND fs.scanned_at < ?`,
       [employee.id, start, end],
     ),
@@ -82,12 +83,12 @@ export async function GET(req: NextRequest, { params }: { params: { employeeId: 
     else pingsByDate.set(dateKey, [entry]);
   }
 
-  const scansByDate = new Map<string, { scanned_at: string }[]>();
+  const scansByDate = new Map<string, { scanned_at: string; source: string }[]>();
   for (const r of scanRows) {
     const iso = dbDatetimeToIso(r.scanned_at)!;
     const dateKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Makassar" }).format(new Date(iso));
     const list = scansByDate.get(dateKey);
-    const entry = { scanned_at: iso };
+    const entry = { scanned_at: iso, source: r.source };
     if (list) list.push(entry);
     else scansByDate.set(dateKey, [entry]);
   }

@@ -24,6 +24,7 @@ type SevimaAttributes = {
   nip_pns?: string | null;
   nidn?: string | null;
   nidk?: string | null;
+  no_akun_finger?: string | number | null; // ID pegawai di mesin fingerprint (sama dengan employees.finger_id)
   id_status_aktif?: string | null; // AA = Aktif; TA = Tidak Aktif, M = Meninggal Dunia, PN = Pensiun Normal, dst.
   status_aktif?: string | null;
 };
@@ -40,6 +41,8 @@ type SevimaListResponse = {
 };
 
 export type SevimaEmployee = {
+  sevimaId: number; // id_pegawai Sevima -- kunci endpoint presensi-pegawai/{id_pegawai}-{tanggal}
+  fingerId: number | null; // no_akun_finger, null kalau kosong/bukan angka
   nip: string; // NIP utama (nip_pns 18 digit bila ada, selain itu field "nip" Sevima)
   ids: string[]; // semua identitas bersih untuk pencocokan: nip, nip_pns, nidn, nidk
   name: string;
@@ -62,21 +65,36 @@ function cleanEmail(v: string | null | undefined): string | null {
 // per-codepoint supaya tidak ada karakter tak-terlihat di source code ini sendiri.
 const ZERO_WIDTH_CHARS_RE = /[\u200B\u200C\u200D\u200E\u200F\uFEFF]/g;
 
+function sevimaBaseUrl(): string {
+  return process.env.SEVIMA_API_URL || "https://api.sevimaplatform.com";
+}
+
+function sevimaHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "X-App-Key": process.env.SEVIMA_APP_KEY!,
+    "X-Secret-Key": process.env.SEVIMA_SECRET_KEY!,
+  };
+}
+
+// no_akun_finger datang sebagai string ("425") -- kosong/0/bukan angka dianggap tidak ada.
+export function parseSevimaFingerId(v: unknown): number | null {
+  const s = String(v ?? "").trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return n > 0 && n <= 2147483647 ? n : null;
+}
+
 async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee[]> {
-  const baseUrl = process.env.SEVIMA_API_URL || "https://api.sevimaplatform.com";
-  let url: string | null = `${baseUrl}${resourcePath}`;
+  let url: string | null = `${sevimaBaseUrl()}${resourcePath}`;
 
   const employees: SevimaEmployee[] = [];
 
   while (url) {
     const res: Response = await fetch(url, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-App-Key": process.env.SEVIMA_APP_KEY!,
-        "X-Secret-Key": process.env.SEVIMA_SECRET_KEY!,
-      },
+      headers: sevimaHeaders(),
     });
 
     if (!res.ok) {
@@ -99,6 +117,8 @@ async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee
         // Status kosong dianggap aktif (jangan buang data hanya karena field tidak terisi).
         const active = statusId ? statusId === "AA" : !statusText || /^aktif$/i.test(statusText);
         employees.push({
+          sevimaId: Number(a.id_pegawai ?? record.id),
+          fingerId: parseSevimaFingerId(a.no_akun_finger),
           nip,
           ids,
           name,
@@ -134,4 +154,83 @@ export async function fetchSevimaEmployees(): Promise<SevimaEmployee[]> {
   }
 
   return [...byNip.values()];
+}
+
+// Log kehadiran harian satu pegawai dari aplikasi presensi Sevima:
+// GET /siakadcloud/v1/presensi-pegawai/{id_pegawai}-{YYYY-MM-DD}. Satu record per hari
+// (bukan per scan) -- jam_masuk/jam_keluar berupa jam lokal WITA "HH:MM:SS", kosong bila
+// belum absen. Dipakai lib/sevima-presensi.ts untuk menggabungkan presensi aplikasi Sevima
+// ke fingerprint_scans.
+export type SevimaAttendanceDay = {
+  fingerId: number | null;
+  tanggal: string; // YYYY-MM-DD
+  kodeAbsensi: string;
+  jamMasuk: string | null; // "HH:MM:SS" WITA
+  jamKeluar: string | null;
+};
+
+export type SevimaAttendanceFetch =
+  | { ok: true; day: SevimaAttendanceDay | null } // null = tidak ada record hari itu
+  | { ok: false; status: number };
+
+type SevimaAttendanceAttributes = {
+  no_akun_finger?: string | number | null;
+  tanggal_presensi?: string | null;
+  kode_absensi?: string | null;
+  jam_masuk?: string | null;
+  jam_keluar?: string | null;
+};
+
+function cleanClock(v: unknown): string | null {
+  const m = String(v ?? "").trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  const [h, mi, se] = [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)];
+  if (h > 23 || mi > 59 || se > 59) return null;
+  return `${String(h).padStart(2, "0")}:${m[2]}:${String(se).padStart(2, "0")}`;
+}
+
+export async function fetchSevimaAttendanceDay(sevimaId: number, date: string): Promise<SevimaAttendanceFetch> {
+  const url = `${sevimaBaseUrl()}/siakadcloud/v1/presensi-pegawai/${sevimaId}-${date}`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "GET",
+        headers: sevimaHeaders(),
+        cache: "no-store",
+        signal: AbortSignal.timeout(20000),
+      });
+    } catch {
+      if (attempt === 0) continue;
+      return { ok: false, status: 0 };
+    }
+    if (res.status === 404) return { ok: true, day: null };
+    if (res.status === 429 || res.status >= 500) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      return { ok: false, status: res.status };
+    }
+    if (!res.ok) return { ok: false, status: res.status };
+
+    // Bentuk record sama dengan endpoint lain ({id, attributes}), kadang dibungkus "data"
+    // (objek atau array) -- terima semuanya, sama seperti lib/sevimaAuth.ts di dashboard-kinerja.
+    type Rec = { attributes?: SevimaAttendanceAttributes };
+    const raw = (await res.json().catch(() => null)) as (Rec & { data?: Rec | Rec[] }) | null;
+    const wrapped = Array.isArray(raw?.data) ? raw?.data[0] : raw?.data;
+    const a = raw?.attributes ?? wrapped?.attributes;
+    if (!a) return { ok: true, day: null };
+    return {
+      ok: true,
+      day: {
+        fingerId: parseSevimaFingerId(a.no_akun_finger),
+        tanggal: String(a.tanggal_presensi ?? date).slice(0, 10),
+        kodeAbsensi: String(a.kode_absensi ?? "").trim(),
+        jamMasuk: cleanClock(a.jam_masuk),
+        jamKeluar: cleanClock(a.jam_keluar),
+      },
+    };
+  }
+  return { ok: false, status: 0 };
 }

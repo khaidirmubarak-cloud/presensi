@@ -16,12 +16,14 @@ type PresensiRow = {
   pulangCepatMenit: number | null;
   tidakPresensiMasuk: boolean;
   tidakPresensiPulang: boolean;
-  sumber: "fingerprint" | "wa_ping" | null;
+  sumber: "fingerprint" | "sevima" | "fingerprint_sevima" | "wa_ping" | null;
   leaveTypeName: string | null;
 };
 
 const SUMBER_LABEL: Record<NonNullable<PresensiRow["sumber"]>, string> = {
   fingerprint: "Fingerprint",
+  sevima: "Sevima",
+  fingerprint_sevima: "Fingerprint + Sevima",
   wa_ping: "WA",
 };
 
@@ -82,6 +84,9 @@ export default function PresensiPage() {
   const [printMonth, setPrintMonth] = useState(todayIso().slice(0, 7));
   const [printing, setPrinting] = useState<"pdf" | "excel" | null>(null);
   const [printError, setPrintError] = useState("");
+  const [sevimaBusy, setSevimaBusy] = useState<"preview" | "sync" | null>(null);
+  const [sevimaMessage, setSevimaMessage] = useState("");
+  const [sevimaError, setSevimaError] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -153,6 +158,39 @@ export default function PresensiPage() {
     });
   }
 
+  async function handleSevima(dryRun: boolean) {
+    setSevimaError("");
+    setSevimaMessage("");
+    setSevimaBusy(dryRun ? "preview" : "sync");
+    try {
+      const res = await fetch("/api/admin/presensi/sync-sevima", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: date, to: date, dryRun }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok || !d) {
+        setSevimaError(d?.error || "Gagal mengambil presensi dari Sevima.");
+        return;
+      }
+      setSevimaMessage(
+        (dryRun ? "Pratinjau (belum disimpan): " : "") +
+          `${d.pegawaiDicek} pegawai dicek, ${d.recordAdaJam} punya jam presensi di Sevima — ` +
+          `${d.jamBaru} jam ${dryRun ? "akan " : ""}ditambahkan, ${d.jamSudahAda} sudah ada` +
+          (d.dilewatiDekatScanMesin ? `, ${d.dilewatiDekatScanMesin} dilewati (sama dengan scan mesin)` : "") +
+          (d.barisLamaDihapus ? `, ${d.barisLamaDihapus} jam lama ${dryRun ? "akan " : ""}diganti koreksi Sevima` : "") +
+          (d.fingerBelumTerdaftar ? `, ${d.fingerBelumTerdaftar} ID finger Sevima belum terdaftar di sini` : "") +
+          (d.gagal ? `, ${d.gagal} permintaan gagal` : "") +
+          ".",
+      );
+      if (!dryRun) load();
+    } catch {
+      setSevimaError("Terjadi kesalahan jaringan.");
+    } finally {
+      setSevimaBusy(null);
+    }
+  }
+
   async function handlePrint(format: "pdf" | "excel") {
     setPrintError("");
     setPrinting(format);
@@ -196,9 +234,36 @@ export default function PresensiPage() {
       <header className="mb-8">
         <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">Presensi</h1>
         <p className="mt-1.5 text-[14px] text-muted">
-          Sumber data adalah scan mesin fingerprint.
+          Sumber data adalah scan mesin fingerprint dan presensi aplikasi Sevima.
         </p>
       </header>
+
+      <section className="rounded-card bg-panel border border-line shadow-card p-5 mb-6">
+        <p className="font-mono text-[11px] uppercase tracking-wide text-muted mb-3">Presensi aplikasi Sevima</p>
+        <p className="text-[13px] text-muted mb-3">
+          Gabungkan jam masuk/keluar dari aplikasi Sevima tanggal {date} ke data presensi mesin.
+        </p>
+        {sevimaError && <p className="text-[13px] text-red-700 mb-3">{sevimaError}</p>}
+        {sevimaMessage && <p className="text-[13px] text-cardGreenDark mb-3">{sevimaMessage}</p>}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => handleSevima(true)}
+            disabled={sevimaBusy !== null}
+            className="rounded-full border border-line bg-panel px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
+          >
+            {sevimaBusy === "preview" ? "Memeriksa…" : "Pratinjau"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSevima(false)}
+            disabled={sevimaBusy !== null}
+            className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
+          >
+            {sevimaBusy === "sync" ? "Menarik data…" : "Tarik dari Sevima"}
+          </button>
+        </div>
+      </section>
 
       <div className="flex flex-wrap items-end gap-3 mb-6">
         <label className="block">

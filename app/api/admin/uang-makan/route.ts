@@ -3,6 +3,7 @@ import { query, queryOne, dbDatetimeToIso, toDbDatetime, execute } from "../../.
 import { getSession } from "../../../../lib/auth";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange } from "../../../../lib/attendance-status";
 import { isEligibleMealDay } from "../../../../lib/uang-makan";
+import { SCAN_EMPLOYEE_JOIN } from "../../../../lib/finger";
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
     ]),
     query<ScanRow>(
       `SELECT e.id AS employee_id, fs.scanned_at FROM fingerprint_scans fs
-       JOIN employees e ON e.finger_id = fs.finger_id
+       ${SCAN_EMPLOYEE_JOIN}
        WHERE fs.scanned_at >= ? AND fs.scanned_at < ?`,
       [start, end],
     ),

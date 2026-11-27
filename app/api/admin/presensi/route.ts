@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, dbDatetimeToIso, toDbDatetime } from "../../../../lib/db";
 import { getSession } from "../../../../lib/auth";
 import { computeDailyStatus, type WorkHourRule, type RamadhanRange } from "../../../../lib/attendance-status";
+import { SCAN_EMPLOYEE_JOIN } from "../../../../lib/finger";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ type PingRow = {
 type ScanRow = {
   employee_id: string;
   scanned_at: string;
+  source: string;
 };
 
 export async function GET(req: NextRequest) {
@@ -94,8 +96,8 @@ export async function GET(req: NextRequest) {
   // scan dengan finger_id yang tidak cocok pegawai manapun otomatis tidak ikut (misal
   // finger_id lama yang sudah tidak ter-assign).
   const scanRows = await query<ScanRow>(
-    `SELECT e.id AS employee_id, fs.scanned_at FROM fingerprint_scans fs
-     JOIN employees e ON e.finger_id = fs.finger_id
+    `SELECT e.id AS employee_id, fs.scanned_at, fs.source FROM fingerprint_scans fs
+     ${SCAN_EMPLOYEE_JOIN}
      WHERE fs.scanned_at BETWEEN ? AND ?`,
     [start, end],
   );
@@ -137,6 +139,7 @@ export async function GET(req: NextRequest) {
     }));
     const scans = (scansByEmployee.get(e.id) ?? []).map((s) => ({
       scanned_at: dbDatetimeToIso(s.scanned_at)!,
+      source: s.source,
     }));
     const daily = computeDailyStatus(
       date,

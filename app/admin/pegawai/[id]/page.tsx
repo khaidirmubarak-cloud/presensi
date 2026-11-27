@@ -144,6 +144,11 @@ export default function PegawaiDetailPage() {
   const [fingerError, setFingerError] = useState("");
   const [fingerMessage, setFingerMessage] = useState("");
 
+  // Pengakuan presensi aplikasi Sevima -- /api/admin/pegawai/[id]/sevima-presensi.
+  const [sevimaBusy, setSevimaBusy] = useState(false);
+  const [sevimaError, setSevimaError] = useState("");
+  const [sevimaMessage, setSevimaMessage] = useState("");
+
   // Email login (Masuk dengan Google / SIAKAD di dashboard Laporan Kinerja Harian).
   const [loginEmails, setLoginEmails] = useState<LoginEmail[]>([]);
   const [newEmail, setNewEmail] = useState("");
@@ -314,6 +319,40 @@ export default function PegawaiDetailPage() {
       setFingerError("Terjadi kesalahan jaringan.");
     } finally {
       setFingerBusy(null);
+    }
+  }
+
+  async function handleToggleSevima(allowed: boolean) {
+    setSevimaError("");
+    setSevimaMessage("");
+    setSevimaBusy(true);
+    try {
+      const res = await fetch(`/api/admin/pegawai/${params.id}/sevima-presensi`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allowed }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        setSevimaError(data?.error || "Gagal menyimpan pengakuan presensi Sevima.");
+        return;
+      }
+      setForm((f) => ({ ...f, sevima_presensi_allowed: data.sevima_presensi_allowed }));
+      setSevimaMessage(
+        allowed
+          ? "Presensi aplikasi Sevima diakui." +
+              (data.pulled
+                ? ` ${data.pulled.recordAdaJam} hari berpresensi bulan ini ditarik, ${data.pulled.jamBaru} jam baru ditambahkan` +
+                  (data.pulled.gagal ? `, ${data.pulled.gagal} permintaan gagal` : "") +
+                  "."
+                : "") +
+              (data.pullNote ? ` ${data.pullNote}` : "")
+          : "Pengakuan dicabut — presensi aplikasi Sevima pegawai ini tidak dihitung lagi.",
+      );
+    } catch {
+      setSevimaError("Terjadi kesalahan jaringan.");
+    } finally {
+      setSevimaBusy(false);
     }
   }
 
@@ -509,6 +548,37 @@ export default function PegawaiDetailPage() {
         {fingerError && <p className="mt-3 text-[13px] text-red-700">{fingerError}</p>}
         {fingerMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{fingerMessage}</p>}
       </form>
+
+      <section className="rounded-card bg-panel border border-line p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-muted">Presensi aplikasi Sevima</p>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
+              Number(form.sevima_presensi_allowed) === 1 ? "bg-emerald-100 text-emerald-800" : "bg-pineLight text-muted"
+            }`}
+          >
+            {Number(form.sevima_presensi_allowed) === 1 ? "Diakui" : "Tidak diakui"}
+          </span>
+        </div>
+        <p className="text-[12.5px] text-muted mb-4">
+          Bila diakui, jam masuk/pulang dari aplikasi Sevima dihitung bersama scan mesin fingerprint (presensi,
+          tunjangan kinerja, uang makan). Bila tidak diakui, hanya scan mesin yang dihitung.
+        </p>
+        <button
+          type="button"
+          onClick={() => handleToggleSevima(Number(form.sevima_presensi_allowed) !== 1)}
+          disabled={sevimaBusy}
+          className="rounded-full border border-line bg-pineLight px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:bg-pineLight transition-colors disabled:opacity-60"
+        >
+          {sevimaBusy
+            ? "Menyimpan…"
+            : Number(form.sevima_presensi_allowed) === 1
+              ? "Cabut pengakuan"
+              : "Akui presensi Sevima"}
+        </button>
+        {sevimaError && <p className="mt-3 text-[13px] text-red-700">{sevimaError}</p>}
+        {sevimaMessage && <p className="mt-3 text-[13px] text-cardGreenDark">{sevimaMessage}</p>}
+      </section>
 
       <form onSubmit={handleAddEmail} className="rounded-card bg-panel border border-line p-5 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">

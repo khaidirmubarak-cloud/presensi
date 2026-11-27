@@ -13,7 +13,7 @@ type DayRow = {
   pulangCepatMenit: number | null;
   tidakPresensiMasuk: boolean;
   tidakPresensiPulang: boolean;
-  sumber: "fingerprint" | "wa_ping" | null;
+  sumber: "fingerprint" | "sevima" | "fingerprint_sevima" | "wa_ping" | null;
   leaveTypeName: string | null;
 };
 
@@ -21,6 +21,8 @@ type Employee = { id: string; name: string; nip: string | null; unitName: string
 
 const SUMBER_LABEL: Record<NonNullable<DayRow["sumber"]>, string> = {
   fingerprint: "Fingerprint",
+  sevima: "Sevima",
+  fingerprint_sevima: "Fingerprint + Sevima",
   wa_ping: "WA",
 };
 

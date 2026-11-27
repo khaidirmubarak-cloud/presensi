@@ -14,6 +14,7 @@ type PegawaiDetail = {
   status: string;
   phone_number: string | null;
   finger_id: number | null;
+  sevima_presensi_allowed: number;
   legacy_id_user: string | null;
   nip_lama: string | null;
   nidn: string | null;
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const pegawai = await queryOne<PegawaiDetail>(
     `SELECT
-       e.id, e.name, e.nip, e.department, e.status, e.phone_number, e.finger_id,
+       e.id, e.name, e.nip, e.department, e.status, e.phone_number, e.finger_id, e.sevima_presensi_allowed,
        p.legacy_id_user, p.nip_lama, p.nidn, p.bank_account_no, p.npwp,
        p.birth_date, p.photo_url,
        p.rank_id, p.unit_id, p.job_class_id, p.functional_position_id, p.tukin_nonpns_grade_id,

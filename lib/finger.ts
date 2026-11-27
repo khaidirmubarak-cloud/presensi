@@ -1,10 +1,19 @@
 import { queryOne, dbDatetimeToIso } from "./db";
 
+// Join scan -> pegawai yang dipakai SEMUA perhitungan presensi (status, tukin, uang makan,
+// ekspor, LKH). Scan aplikasi Sevima (source 'SEVIMA') hanya diakui untuk pegawai yang diberi
+// izin admin kepegawaian (employees.sevima_presensi_allowed, menu detail pegawai) -- kebijakan
+// saat ini tidak mengakui presensi aplikasi Sevima untuk semua pegawai. Berlaku surut dan
+// langsung: mencabut izin membuat scan Sevima pegawai itu tidak dihitung lagi, tanpa hapus data.
+// Disalin apa adanya di dashboard-kinerja/lib/attendance.ts -- ubah keduanya bersamaan.
+export const SCAN_EMPLOYEE_JOIN =
+  "JOIN employees e ON e.finger_id = fs.finger_id AND (fs.source <> 'SEVIMA' OR e.sevima_presensi_allowed = 1)";
+
 // Info satu ID finger mesin presensi: siapa pemakainya di employees, dan aktivitas scannya
 // di fingerprint_scans -- dipakai halaman detail pegawai untuk menampilkan, mengecek
 // sebelum menyimpan, dan menyelesaikan bentrok ID finger (mis. hasil migrasi cobakinerja).
-// ID finger hanya berasal dari cobakinerja (user.id_finger) atau diisi admin -- data Sevima
-// tidak punya ID finger.
+// ID finger berasal dari cobakinerja (user.id_finger), diisi admin, atau dari Sevima
+// (atribut no_akun_finger, diisi otomatis oleh "Sync dari Sevima" hanya bila masih kosong).
 
 export type FingerInfo = {
   fingerId: number;
