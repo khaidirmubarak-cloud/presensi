@@ -1,5 +1,5 @@
 import { query, execute, toDbDatetime } from "./db";
-import { fetchSevimaEmployees, fetchSevimaAttendanceDay, type SevimaAttendanceDay } from "./sevima";
+import { fetchSevimaEmployeesCached, fetchSevimaAttendanceDay, type SevimaAttendanceDay } from "./sevima";
 
 // Penggabungan presensi aplikasi Sevima ke presensi mesin fingerprint.
 //
@@ -112,7 +112,7 @@ export async function syncSevimaPresensi(
   );
   const localByFinger = new Map(local.map((r) => [Number(r.finger_id), r]));
 
-  const sevima = (await fetchSevimaEmployees()).filter((e) => e.active && e.fingerId !== null && e.sevimaId > 0);
+  const sevima = (await fetchSevimaEmployeesCached()).filter((e) => e.active && e.fingerId !== null && e.sevimaId > 0);
   const targets: { sevimaId: number; fingerId: number; name: string }[] = [];
   const seenFinger = new Set<number>();
   for (const e of sevima) {
@@ -135,7 +135,7 @@ export async function syncSevimaPresensi(
 
   // 1. Ambil record harian dari Sevima.
   const jobs = dates.flatMap((date) => targets.map((t) => ({ ...t, date })));
-  const concurrency = Math.max(1, Math.min(16, Number(process.env.SEVIMA_CONCURRENCY) || 6));
+  const concurrency = Math.max(1, Math.min(16, Number(process.env.SEVIMA_CONCURRENCY) || 2));
   const fetched = await mapLimit(jobs, concurrency, async (job) => ({ job, res: await fetchSevimaAttendanceDay(job.sevimaId, job.date) }));
   result.permintaan = jobs.length;
 

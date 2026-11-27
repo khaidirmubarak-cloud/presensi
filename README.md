@@ -250,8 +250,11 @@ mesin dan aplikasi Sevima otomatis tergabung (mis. masuk di mesin, pulang di apl
   dilewati; dijalankan berulang aman (`UNIQUE(finger_id, scanned_at)`).
 - **Koreksi**: kalau jam di Sevima berubah, baris `SEVIMA` lama untuk hari itu dihapus dan
   diganti. Baris dari sumber lain tidak pernah disentuh.
-- **Biaya API**: 1 permintaan per pegawai (yang punya finger) per hari. Paralelisme diatur
-  `SEVIMA_CONCURRENCY` (default 6).
+- **Biaya API**: 1 permintaan per pegawai yang diakui per hari. Sevima membatasi laju (429
+  "Too many requests"), jadi semua panggilan dijalankan berurutan dengan jeda minimum
+  `SEVIMA_MIN_INTERVAL_MS` (default 300 ms) yang otomatis melebar saat kena 429 dan dicoba
+  ulang. Daftar pegawai Sevima ditembolok 6 jam untuk penarikan presensi ("Sync dari Sevima"
+  selalu mengambil ulang).
 
 **Deploy pertama -- urutan wajib**: jalankan `sql/012_sevima_presensi.sql` di database
 bersama SEBELUM deploy presensi maupun dashboard-kinerja versi ini; kalau kolomnya belum ada,
