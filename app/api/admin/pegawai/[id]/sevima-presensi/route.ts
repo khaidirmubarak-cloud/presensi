@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (r.pegawaiDicek === 0) pullNote = "ID finger pegawai ini tidak ditemukan di data Sevima (no_akun_finger).";
       } catch (err) {
         console.error("Tarik presensi Sevima saat pengakuan gagal:", err);
-        pullNote = "Pengakuan tersimpan, tetapi gagal menarik presensi dari Sevima — coba tarik ulang dari halaman Presensi.";
+        pullNote = `Pengakuan tersimpan, tetapi gagal menarik presensi dari Sevima (${err instanceof Error ? err.message : String(err)}).`;
       }
     }
   }

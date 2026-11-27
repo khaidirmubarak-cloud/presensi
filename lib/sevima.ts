@@ -98,7 +98,10 @@ async function fetchSevimaResource(resourcePath: string): Promise<SevimaEmployee
     });
 
     if (!res.ok) {
-      throw new Error(`Sevima API (${resourcePath}) merespons ${res.status}`);
+      // Sertakan "detail" dari body error Sevima ({"errors":{"detail":...}}), mis. pesan whitelist IP.
+      const errBody = (await res.json().catch(() => null)) as { errors?: { detail?: string } } | null;
+      const detail = errBody?.errors?.detail ? `: ${errBody.errors.detail}` : "";
+      throw new Error(`Sevima API (${resourcePath}) merespons ${res.status}${detail}`);
     }
 
     const body: SevimaListResponse = await res.json();

@@ -34,9 +34,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(await syncSevimaPresensi(dates, { dryRun: !!body.dryRun }));
   } catch (err) {
     console.error("Sync presensi Sevima gagal:", err);
-    return NextResponse.json(
-      { error: "Gagal mengambil data dari Sevima (cek kredensial & whitelist IP server di Sevima)." },
-      { status: 502 },
-    );
+    // Penyebab asli ditampilkan ke admin (bukan cuma di log) -- log aplikasi di host cPanel
+    // ini tidak selalu mudah ditemukan. Isinya pesan teknis (mis. status API Sevima atau error
+    // SQL), tidak memuat kredensial.
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Gagal menarik presensi dari Sevima: ${detail}` }, { status: 502 });
   }
 }
